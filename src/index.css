@@ -1,0 +1,89 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --bg: oklch(98.5% 0.005 80);
+    --bg-elevated: oklch(100% 0 0);
+    --bg-subtle: oklch(96.5% 0.006 80);
+    --bg-hover: oklch(95% 0.008 80);
+
+    --border: oklch(92% 0.008 80);
+    --border-strong: oklch(86% 0.01 80);
+
+    --ink: oklch(20% 0.015 60);
+    --ink-2: oklch(38% 0.012 60);
+    --ink-3: oklch(58% 0.01 70);
+    --ink-4: oklch(72% 0.008 70);
+
+    --brand: oklch(72% 0.16 65);
+    --brand-ink: oklch(45% 0.14 60);
+    --brand-soft: oklch(96% 0.04 80);
+    --primary-foreground: oklch(100% 0 0);
+
+    --pos: oklch(58% 0.14 150);
+    --pos-soft: oklch(95% 0.04 150);
+    --neg: oklch(58% 0.18 25);
+    --neg-soft: oklch(95% 0.04 25);
+
+    --cat-1: oklch(72% 0.16 65);
+    --cat-2: oklch(62% 0.12 240);
+    --cat-3: oklch(65% 0.13 160);
+    --cat-4: oklch(60% 0.13 300);
+
+    --r-sm: 6px;
+    --r-md: 10px;
+    --r-lg: 14px;
+
+    --shadow-sm: 0 1px 2px oklch(20% 0.015 60 / 0.04);
+    --shadow-md: 0 1px 3px oklch(20% 0.015 60 / 0.05),
+      0 4px 12px oklch(20% 0.015 60 / 0.04);
+  }
+
+  [data-theme='dark'] {
+    --bg: oklch(18% 0.01 60);
+    --bg-elevated: oklch(22% 0.012 60);
+    --bg-subtle: oklch(20% 0.011 60);
+    --bg-hover: oklch(26% 0.013 60);
+
+    --border: oklch(28% 0.014 60);
+    --border-strong: oklch(34% 0.016 60);
+
+    --ink: oklch(96% 0.005 80);
+    --ink-2: oklch(80% 0.008 70);
+    --ink-3: oklch(64% 0.01 70);
+    --ink-4: oklch(48% 0.012 60);
+
+    --brand-soft: oklch(28% 0.04 70);
+    --pos: oklch(72% 0.16 145);
+    --pos-soft: oklch(28% 0.04 150);
+    --neg: oklch(70% 0.18 25);
+    --neg-soft: oklch(28% 0.04 25);
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  html,
+  body,
+  #root {
+    @apply h-full;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-feature-settings: 'ss01', 'cv11';
+  }
+}
+
+@layer utilities {
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+  .font-mono-tabular {
+    font-family: var(--font-mono), 'JetBrains Mono', monospace;
+    font-variant-numeric: tabular-nums;
+  }
+}
