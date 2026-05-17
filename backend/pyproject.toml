@@ -1,0 +1,21 @@
+[project]
+name = "simplefund-backend"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi[standard]",
+    "sqlalchemy",
+    "alembic",
+    "pydantic-settings",
+    "python-jose[cryptography]",
+]
+
+[dependency-groups]
+dev = [
+    "pytest",
+    "pytest-asyncio",
+    "httpx",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"

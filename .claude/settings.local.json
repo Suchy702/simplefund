@@ -4,5 +4,9 @@
       "Bash(npx tsc *)",
       "Bash(echo \"EXIT_CODE=$?\")"
     ]
-  }
+  },
+  "enabledMcpjsonServers": [
+    "supabase"
+  ],
+  "enableAllProjectMcpServers": true
 }
