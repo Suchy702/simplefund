@@ -1,12 +1,7 @@
 {
   "permissions": {
-    "allow": [
-      "Bash(npx tsc *)",
-      "Bash(echo \"EXIT_CODE=$?\")"
-    ]
+    "allow": ["Bash(npx tsc *)", "Bash(echo \"EXIT_CODE=$?\")"]
   },
-  "enabledMcpjsonServers": [
-    "supabase"
-  ],
+  "enabledMcpjsonServers": ["supabase"],
   "enableAllProjectMcpServers": true
 }

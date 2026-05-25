@@ -1,10 +1,10 @@
-import { Plus } from 'lucide-react';
+import { Plus } from 'lucide-react'
 
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/ui/button'
 
 interface PageHeadProps {
-  asOfDate: string;
-  syncedMinutesAgo: number;
+  asOfDate: string
+  syncedMinutesAgo: number
 }
 
 export function PageHead({ asOfDate, syncedMinutesAgo }: PageHeadProps) {
@@ -15,7 +15,8 @@ export function PageHead({ asOfDate, syncedMinutesAgo }: PageHeadProps) {
           Twój portfel
         </h1>
         <div className="text-13 text-ink-3">
-          Stan na dziś, {asOfDate} · ostatnia synchronizacja {syncedMinutesAgo} min temu
+          Stan na dziś, {asOfDate} · ostatnia synchronizacja {syncedMinutesAgo}{' '}
+          min temu
         </div>
       </div>
       <Button variant="default" size="lg">
@@ -23,5 +24,5 @@ export function PageHead({ asOfDate, syncedMinutesAgo }: PageHeadProps) {
         Nowa operacja
       </Button>
     </div>
-  );
+  )
 }

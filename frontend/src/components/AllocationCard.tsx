@@ -4,32 +4,32 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
-import { NestedDonut } from '@/components/NestedDonut';
-import { useAllocation, useHoldings } from '@/api/portfolio';
-import type { AssetClass } from '@/types/portfolio';
+} from '@/components/ui/card'
+import { Skeleton } from '@/components/ui/skeleton'
+import { NestedDonut } from '@/components/NestedDonut'
+import { useAllocation, useHoldings } from '@/api/portfolio'
+import type { AssetClass } from '@/types/portfolio'
 
 const CLASS_ORDER: Record<AssetClass, number> = {
   Akcje: 0,
   Lokata: 1,
   Depozyt: 2,
-};
+}
 
 export function AllocationCard() {
-  const { data: allocation, isLoading: allocLoading } = useAllocation();
-  const { data: holdings, isLoading: holdingsLoading } = useHoldings();
+  const { data: allocation, isLoading: allocLoading } = useAllocation()
+  const { data: holdings, isLoading: holdingsLoading } = useHoldings()
 
   const innerSegments = (() => {
-    if (!holdings) return [];
-    const total = holdings.reduce((s, h) => s + h.value, 0);
+    if (!holdings) return []
+    const total = holdings.reduce((s, h) => s + h.value, 0)
     const sorted = [...holdings].sort(
       (a, b) =>
         (CLASS_ORDER[a.class] ?? 9) - (CLASS_ORDER[b.class] ?? 9) ||
-        b.value - a.value,
-    );
-    return sorted.map((h) => ({ pct: (h.value / total) * 100, color: h.color }));
-  })();
+        b.value - a.value
+    )
+    return sorted.map((h) => ({ pct: (h.value / total) * 100, color: h.color }))
+  })()
 
   return (
     <Card>
@@ -71,7 +71,9 @@ export function AllocationCard() {
                         className="h-2.5 w-2.5 shrink-0 rounded-[3px]"
                         style={{ background: a.color }}
                       />
-                      <span className="flex-1 text-13 text-foreground">{a.name}</span>
+                      <span className="flex-1 text-13 text-foreground">
+                        {a.name}
+                      </span>
                       <span className="font-mono tabular text-13 font-medium text-ink-2">
                         {a.pct.toFixed(1)}%
                       </span>
@@ -84,5 +86,5 @@ export function AllocationCard() {
         )}
       </CardContent>
     </Card>
-  );
+  )
 }

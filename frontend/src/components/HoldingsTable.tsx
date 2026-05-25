@@ -1,15 +1,15 @@
-import { Search, Settings } from 'lucide-react';
+import { Search, Settings } from 'lucide-react'
 
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/ui/button'
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Skeleton } from '@/components/ui/skeleton';
+} from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Skeleton } from '@/components/ui/skeleton'
 import {
   Table,
   TableBody,
@@ -17,16 +17,16 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
-import { DeltaPill } from '@/components/DeltaPill';
-import { TickerBadge } from '@/components/TickerBadge';
-import { useFxRates, useHoldings } from '@/api/portfolio';
-import { cn } from '@/lib/utils';
-import { fmtMoney, fmtNumber } from '@/lib/formatters';
+} from '@/components/ui/table'
+import { DeltaPill } from '@/components/DeltaPill'
+import { TickerBadge } from '@/components/TickerBadge'
+import { useFxRates, useHoldings } from '@/api/portfolio'
+import { cn } from '@/lib/utils'
+import { fmtMoney, fmtNumber } from '@/lib/formatters'
 
 export function HoldingsTable() {
-  const { data: holdings, isLoading } = useHoldings();
-  const { data: fx } = useFxRates();
+  const { data: holdings, isLoading } = useHoldings()
+  const { data: fx } = useFxRates()
 
   return (
     <Card>
@@ -34,7 +34,9 @@ export function HoldingsTable() {
         <div>
           <CardTitle>Aktywa w portfelu</CardTitle>
           <CardDescription>
-            {holdings ? `${holdings.length} pozycji · kliknij cenę aby edytować` : ' '}
+            {holdings
+              ? `${holdings.length} pozycji · kliknij cenę aby edytować`
+              : ' '}
           </CardDescription>
         </div>
         <div className="flex gap-2">
@@ -70,14 +72,16 @@ export function HoldingsTable() {
                 const pricePln =
                   h.price !== null && h.currency === 'USD' && fx
                     ? h.price * fx.USD_PLN
-                    : null;
+                    : null
                 return (
                   <TableRow key={h.ticker}>
                     <TableCell>
                       <div className="inline-flex items-center gap-2.5">
                         <TickerBadge ticker={h.ticker} color={h.color} />
                         <div>
-                          <div className="font-medium text-foreground">{h.ticker}</div>
+                          <div className="font-medium text-foreground">
+                            {h.ticker}
+                          </div>
                           <div className="text-tiny text-ink-3">{h.name}</div>
                         </div>
                       </div>
@@ -118,7 +122,7 @@ export function HoldingsTable() {
                         <span
                           className={cn(
                             'font-mono tabular font-medium',
-                            h.change >= 0 ? 'text-pos' : 'text-neg',
+                            h.change >= 0 ? 'text-pos' : 'text-neg'
                           )}
                         >
                           {fmtMoney(h.change, '', { sign: true })}
@@ -127,12 +131,12 @@ export function HoldingsTable() {
                       </div>
                     </TableCell>
                   </TableRow>
-                );
+                )
               })}
             </TableBody>
           </Table>
         )}
       </CardContent>
     </Card>
-  );
+  )
 }

@@ -1,39 +1,52 @@
-import { Card } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
-import { usePortfolioSeries } from '@/api/portfolio';
-import { cn } from '@/lib/utils';
-import { fmtMoney, fmtPct } from '@/lib/formatters';
-import type { RangeKey } from '@/types/portfolio';
+import { Card } from '@/components/ui/card'
+import { Skeleton } from '@/components/ui/skeleton'
+import { usePortfolioSeries } from '@/api/portfolio'
+import { cn } from '@/lib/utils'
+import { fmtMoney, fmtPct } from '@/lib/formatters'
+import type { RangeKey } from '@/types/portfolio'
 
 interface PerformanceStatsProps {
-  range: RangeKey;
+  range: RangeKey
 }
 
 function labelAt(range: RangeKey, ratio: number): string {
-  if (range === 'MAX') return `${2021 + Math.round(ratio * 5)}`;
+  if (range === 'MAX') return `${2021 + Math.round(ratio * 5)}`
   if (range === '1R') {
-    const months = ['kwi', 'maj', 'cze', 'lip', 'sie', 'wrz', 'paź', 'lis', 'gru', 'sty', 'lut', 'mar'];
-    const i = Math.floor(ratio * 11.99);
-    const year = i < 9 ? 2025 : 2026;
-    return `${months[i]} ${String(year).slice(2)}`;
+    const months = [
+      'kwi',
+      'maj',
+      'cze',
+      'lip',
+      'sie',
+      'wrz',
+      'paź',
+      'lis',
+      'gru',
+      'sty',
+      'lut',
+      'mar',
+    ]
+    const i = Math.floor(ratio * 11.99)
+    const year = i < 9 ? 2025 : 2026
+    return `${months[i]} ${String(year).slice(2)}`
   }
   if (range === '6M') {
-    const months = ['lis', 'gru', 'sty', 'lut', 'mar', 'kwi'];
-    return `${months[Math.floor(ratio * 5.99)]} 26`;
+    const months = ['lis', 'gru', 'sty', 'lut', 'mar', 'kwi']
+    return `${months[Math.floor(ratio * 5.99)]} 26`
   }
   if (range === '3M') {
-    const months = ['lut', 'mar', 'kwi'];
-    return `${months[Math.floor(ratio * 2.99)]} 26`;
+    const months = ['lut', 'mar', 'kwi']
+    return `${months[Math.floor(ratio * 2.99)]} 26`
   }
-  if (range === '1M') return `${30 - Math.round(ratio * 30)}d temu`;
-  return '';
+  if (range === '1M') return `${30 - Math.round(ratio * 30)}d temu`
+  return ''
 }
 
 interface CellProps {
-  label: string;
-  value: React.ReactNode;
-  sub: React.ReactNode;
-  toneClass?: string;
+  label: string
+  value: React.ReactNode
+  sub: React.ReactNode
+  toneClass?: string
 }
 
 function StatCell({ label, value, sub, toneClass }: CellProps) {
@@ -45,18 +58,18 @@ function StatCell({ label, value, sub, toneClass }: CellProps) {
       <div
         className={cn(
           'mb-1 text-28 font-medium tabular leading-tight tracking-tighter2 text-foreground',
-          toneClass,
+          toneClass
         )}
       >
         {value}
       </div>
       <div className="text-xs text-ink-3">{sub}</div>
     </div>
-  );
+  )
 }
 
 export function PerformanceStats({ range }: PerformanceStatsProps) {
-  const { data: series, isLoading } = usePortfolioSeries(range);
+  const { data: series, isLoading } = usePortfolioSeries(range)
 
   if (isLoading || !series) {
     return (
@@ -71,28 +84,29 @@ export function PerformanceStats({ range }: PerformanceStatsProps) {
           ))}
         </div>
       </Card>
-    );
+    )
   }
 
-  const peak = Math.max(...series);
-  const trough = Math.min(...series);
-  const peakIdx = series.indexOf(peak);
-  const troughIdx = series.indexOf(trough);
-  const peakLabel = labelAt(range, peakIdx / (series.length - 1));
-  const troughLabel = labelAt(range, troughIdx / (series.length - 1));
+  const peak = Math.max(...series)
+  const trough = Math.min(...series)
+  const peakIdx = series.indexOf(peak)
+  const troughIdx = series.indexOf(trough)
+  const peakLabel = labelAt(range, peakIdx / (series.length - 1))
+  const troughLabel = labelAt(range, troughIdx / (series.length - 1))
 
-  const mean = series.reduce((a, b) => a + b, 0) / series.length;
-  const variance = series.reduce((a, b) => a + (b - mean) ** 2, 0) / series.length;
-  const stdPct = (Math.sqrt(variance) / mean) * 100;
+  const mean = series.reduce((a, b) => a + b, 0) / series.length
+  const variance =
+    series.reduce((a, b) => a + (b - mean) ** 2, 0) / series.length
+  const stdPct = (Math.sqrt(variance) / mean) * 100
 
-  let maxDd = 0;
-  let peakSoFar = series[0];
+  let maxDd = 0
+  let peakSoFar = series[0]
   for (const v of series) {
-    if (v > peakSoFar) peakSoFar = v;
-    const dd = (v - peakSoFar) / peakSoFar;
-    if (dd < maxDd) maxDd = dd;
+    if (v > peakSoFar) peakSoFar = v
+    const dd = (v - peakSoFar) / peakSoFar
+    if (dd < maxDd) maxDd = dd
   }
-  const maxDdPln = maxDd * peak;
+  const maxDdPln = maxDd * peak
 
   return (
     <Card className="mb-4 px-8 py-6">
@@ -120,5 +134,5 @@ export function PerformanceStats({ range }: PerformanceStatsProps) {
         />
       </div>
     </Card>
-  );
+  )
 }

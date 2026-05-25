@@ -1,14 +1,14 @@
-import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
-import { fmtPct } from '@/lib/formatters';
+import { Badge } from '@/components/ui/badge'
+import { cn } from '@/lib/utils'
+import { fmtPct } from '@/lib/formatters'
 
 interface DeltaPillProps {
-  value: number;
-  className?: string;
+  value: number
+  className?: string
 }
 
 export function DeltaPill({ value, className }: DeltaPillProps) {
-  const positive = value >= 0;
+  const positive = value >= 0
   return (
     <Badge
       variant={positive ? 'pos' : 'neg'}
@@ -16,5 +16,5 @@ export function DeltaPill({ value, className }: DeltaPillProps) {
     >
       {fmtPct(value, { sign: true })}
     </Badge>
-  );
+  )
 }

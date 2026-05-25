@@ -1,19 +1,19 @@
-import { useState } from 'react';
+import { useState } from 'react'
 
-import { AllocationCard } from '@/components/AllocationCard';
-import { Hero } from '@/components/Hero';
-import { HoldingsTable } from '@/components/HoldingsTable';
-import { OperationsTable } from '@/components/OperationsTable';
-import { PageHead } from '@/components/PageHead';
-import { PerformanceCard } from '@/components/PerformanceCard';
-import { PerformanceStats } from '@/components/PerformanceStats';
-import { Topbar } from '@/components/Topbar';
-import { usePortfolioKpi } from '@/api/portfolio';
-import type { RangeKey } from '@/types/portfolio';
+import { AllocationCard } from '@/components/AllocationCard'
+import { Hero } from '@/components/Hero'
+import { HoldingsTable } from '@/components/HoldingsTable'
+import { OperationsTable } from '@/components/OperationsTable'
+import { PageHead } from '@/components/PageHead'
+import { PerformanceCard } from '@/components/PerformanceCard'
+import { PerformanceStats } from '@/components/PerformanceStats'
+import { Topbar } from '@/components/Topbar'
+import { usePortfolioKpi } from '@/api/portfolio'
+import type { RangeKey } from '@/types/portfolio'
 
 export default function DashboardPage() {
-  const [range, setRange] = useState<RangeKey>('1R');
-  const { data: kpi } = usePortfolioKpi();
+  const [range, setRange] = useState<RangeKey>('1R')
+  const { data: kpi } = usePortfolioKpi()
 
   return (
     <div className="flex h-full flex-col overflow-hidden bg-background text-foreground">
@@ -41,5 +41,5 @@ export default function DashboardPage() {
         </div>
       </main>
     </div>
-  );
+  )
 }
