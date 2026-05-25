@@ -1,15 +1,15 @@
-import { Download, Trash2 } from 'lucide-react';
+import { Download, Trash2 } from 'lucide-react'
 
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
+} from '@/components/ui/card'
+import { Skeleton } from '@/components/ui/skeleton'
 import {
   Table,
   TableBody,
@@ -17,12 +17,12 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
-import { useOperations } from '@/api/portfolio';
-import { fmtNumber } from '@/lib/formatters';
+} from '@/components/ui/table'
+import { useOperations } from '@/api/portfolio'
+import { fmtNumber } from '@/lib/formatters'
 
 export function OperationsTable() {
-  const { data: ops, isLoading } = useOperations();
+  const { data: ops, isLoading } = useOperations()
 
   return (
     <Card>
@@ -67,7 +67,9 @@ export function OperationsTable() {
               {ops.map((o, i) => (
                 <TableRow key={`${o.name}-${o.date}-${i}`}>
                   <TableCell>
-                    <Badge variant={o.type === 'Zakup' ? 'buy' : 'sell'}>{o.type}</Badge>
+                    <Badge variant={o.type === 'Zakup' ? 'buy' : 'sell'}>
+                      {o.type}
+                    </Badge>
                   </TableCell>
                   <TableCell>{o.kind}</TableCell>
                   <TableCell className="font-medium">{o.name}</TableCell>
@@ -81,9 +83,16 @@ export function OperationsTable() {
                     {fmtNumber(o.value)}
                   </TableCell>
                   <TableCell>{o.currency}</TableCell>
-                  <TableCell className="font-mono text-xs text-ink-3">{o.date}</TableCell>
+                  <TableCell className="font-mono text-xs text-ink-3">
+                    {o.date}
+                  </TableCell>
                   <TableCell>
-                    <Button variant="ghost" size="icon" aria-label="Usuń" title="Usuń">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      aria-label="Usuń"
+                      title="Usuń"
+                    >
                       <Trash2 size={13} />
                     </Button>
                   </TableCell>
@@ -94,5 +103,5 @@ export function OperationsTable() {
         )}
       </CardContent>
     </Card>
-  );
+  )
 }

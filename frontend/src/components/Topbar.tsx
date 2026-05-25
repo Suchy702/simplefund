@@ -1,26 +1,26 @@
-import { Bell, Download, LogOut, Moon, Sun } from 'lucide-react';
+import { Bell, Download, LogOut, Moon, Sun } from 'lucide-react'
 
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { useSession, useSignOut } from '@/api/auth';
-import { useTheme } from '@/hooks/useTheme';
+} from '@/components/ui/dropdown-menu'
+import { useSession, useSignOut } from '@/api/auth'
+import { useTheme } from '@/hooks/useTheme'
 
 function getInitials(email: string): string {
-  return email.slice(0, 2).toUpperCase();
+  return email.slice(0, 2).toUpperCase()
 }
 
 export function Topbar() {
-  const { theme, toggle } = useTheme();
-  const { data: session } = useSession();
-  const signOut = useSignOut();
+  const { theme, toggle } = useTheme()
+  const { data: session } = useSession()
+  const signOut = useSignOut()
 
-  const initials = session?.user.email ? getInitials(session.user.email) : '?';
+  const initials = session?.user.email ? getInitials(session.user.email) : '?'
 
   return (
     <header className="flex items-center justify-between border-b border-border bg-card px-8 py-3.5 shrink-0">
@@ -36,7 +36,12 @@ export function Topbar() {
           <Download size={14} />
           Importuj z XTB
         </Button>
-        <Button variant="outline" size="icon" aria-label="Powiadomienia" title="Powiadomienia">
+        <Button
+          variant="outline"
+          size="icon"
+          aria-label="Powiadomienia"
+          title="Powiadomienia"
+        >
           <Bell size={15} />
         </Button>
         <Button
@@ -68,5 +73,5 @@ export function Topbar() {
         </DropdownMenu>
       </div>
     </header>
-  );
+  )
 }

@@ -1,15 +1,15 @@
 interface Segment {
-  pct: number;
-  color: string;
+  pct: number
+  color: string
 }
 
 interface NestedDonutProps {
-  outer: Segment[];
-  inner: Segment[];
-  size?: number;
-  outerThickness?: number;
-  innerThickness?: number;
-  gap?: number;
+  outer: Segment[]
+  inner: Segment[]
+  size?: number
+  outerThickness?: number
+  innerThickness?: number
+  gap?: number
 }
 
 export function NestedDonut({
@@ -20,15 +20,15 @@ export function NestedDonut({
   innerThickness = 16,
   gap = 4,
 }: NestedDonutProps) {
-  const rOuter = (size - outerThickness) / 2;
-  const rInner = (size - 2 * outerThickness - 2 * gap - innerThickness) / 2;
-  const cOuter = 2 * Math.PI * rOuter;
-  const cInner = 2 * Math.PI * rInner;
+  const rOuter = (size - outerThickness) / 2
+  const rInner = (size - 2 * outerThickness - 2 * gap - innerThickness) / 2
+  const cOuter = 2 * Math.PI * rOuter
+  const cInner = 2 * Math.PI * rInner
 
-  let oOff = 0;
-  let iOff = 0;
+  let oOff = 0
+  let iOff = 0
   const outerSegs = outer.map((d, i) => {
-    const len = (d.pct / 100) * cOuter;
+    const len = (d.pct / 100) * cOuter
     const seg = (
       <circle
         key={`o-${i}`}
@@ -41,12 +41,12 @@ export function NestedDonut({
         strokeDasharray={`${len} ${cOuter - len}`}
         strokeDashoffset={-oOff}
       />
-    );
-    oOff += len;
-    return seg;
-  });
+    )
+    oOff += len
+    return seg
+  })
   const innerSegs = inner.map((d, i) => {
-    const len = (d.pct / 100) * cInner;
+    const len = (d.pct / 100) * cInner
     const seg = (
       <circle
         key={`i-${i}`}
@@ -59,10 +59,10 @@ export function NestedDonut({
         strokeDasharray={`${len} ${cInner - len}`}
         strokeDashoffset={-iOff}
       />
-    );
-    iOff += len;
-    return seg;
-  });
+    )
+    iOff += len
+    return seg
+  })
 
   return (
     <svg
@@ -74,5 +74,5 @@ export function NestedDonut({
       {outerSegs}
       {innerSegs}
     </svg>
-  );
+  )
 }

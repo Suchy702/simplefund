@@ -1,15 +1,15 @@
-import { Card } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
-import { usePortfolioKpi } from '@/api/portfolio';
-import { cn } from '@/lib/utils';
-import { fmtMoney, fmtNumber, fmtPct } from '@/lib/formatters';
+import { Card } from '@/components/ui/card'
+import { Skeleton } from '@/components/ui/skeleton'
+import { usePortfolioKpi } from '@/api/portfolio'
+import { cn } from '@/lib/utils'
+import { fmtMoney, fmtNumber, fmtPct } from '@/lib/formatters'
 
 function HeroLabel({ children }: { children: React.ReactNode }) {
   return (
     <div className="mb-3 text-tiny font-semibold uppercase tracking-widest2 text-ink-3">
       {children}
     </div>
-  );
+  )
 }
 
 function HeroStat({
@@ -18,10 +18,10 @@ function HeroStat({
   sub,
   toneClass,
 }: {
-  label: string;
-  value: React.ReactNode;
-  sub?: string;
-  toneClass?: string;
+  label: string
+  value: React.ReactNode
+  sub?: string
+  toneClass?: string
 }) {
   return (
     <div>
@@ -29,18 +29,18 @@ function HeroStat({
       <div
         className={cn(
           'font-mono tabular text-2xl font-semibold tracking-tighter2 text-foreground leading-none',
-          toneClass,
+          toneClass
         )}
       >
         {value}
       </div>
       {sub && <div className="mt-2 text-xs text-ink-3">{sub}</div>}
     </div>
-  );
+  )
 }
 
 export function Hero() {
-  const { data, isLoading } = usePortfolioKpi();
+  const { data, isLoading } = usePortfolioKpi()
 
   if (isLoading || !data) {
     return (
@@ -55,11 +55,11 @@ export function Hero() {
           ))}
         </div>
       </Card>
-    );
+    )
   }
 
-  const { totalContrib, totalValue, balance, roi, cagr } = data;
-  const positive = balance >= 0;
+  const { totalContrib, totalValue, balance, roi, cagr } = data
+  const positive = balance >= 0
 
   return (
     <Card className="mb-4 px-9 py-7">
@@ -68,12 +68,14 @@ export function Hero() {
           <HeroLabel>Wartość portfela</HeroLabel>
           <div className="font-mono tabular text-42 font-semibold tracking-tightest text-foreground">
             {fmtNumber(totalValue)}
-            <span className="ml-1.5 text-lg font-medium tracking-normal text-ink-3">PLN</span>
+            <span className="ml-1.5 text-lg font-medium tracking-normal text-ink-3">
+              PLN
+            </span>
           </div>
           <div
             className={cn(
               'mt-3.5 flex items-center gap-2 font-mono tabular text-13',
-              positive ? 'text-pos' : 'text-neg',
+              positive ? 'text-pos' : 'text-neg'
             )}
           >
             <span
@@ -103,5 +105,5 @@ export function Hero() {
         />
       </div>
     </Card>
-  );
+  )
 }
