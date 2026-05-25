@@ -13,3 +13,6 @@ dist/
 
 # IDE / local config
 .claude/settings.local.json
+.mcp.json
+.agents/
+.calude/
