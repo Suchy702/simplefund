@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+
+# Node
+node_modules/
+dist/
+
+# Env
+.env
+
+# IDE / local config
+.claude/settings.local.json
