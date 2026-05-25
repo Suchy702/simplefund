@@ -1,0 +1,155 @@
+// =============================================
+// ENUMS
+// =============================================
+
+Enum asset_type {
+  stock    // stocks, ETFs, precious metals, crypto
+  deposit  // term deposit
+  bond     // Polish treasury bonds
+  cash     // cash deposit
+}
+
+Enum transaction_type {
+  buy
+  sell
+}
+
+Enum interest_type {
+  fixed    // fixed interest rate
+  variable // variable interest rate (e.g. inflation + margin)
+}
+
+Enum price_source {
+  yahoo_finance
+  manual
+}
+
+Enum currency {
+  PLN
+  USD
+  EUR
+  GBP
+  CHF
+}
+
+// =============================================
+// USERS
+// =============================================
+
+Table profiles {
+  id uuid [pk, note: 'References auth.users.id']
+  email varchar [not null, unique]
+  created_at timestamptz [default: `now()`]
+  updated_at timestamptz [default: `now()`]
+}
+
+// =============================================
+// REFERENCE TABLES
+// =============================================
+
+Table stocks {
+  id uuid [pk, default: `gen_random_uuid()`]
+  ticker varchar [not null, unique]
+  name varchar [not null]
+  currency currency [not null]
+  manual_price_only boolean [default: false]
+  created_at timestamptz [default: `now()`]
+}
+
+Table bond_series {
+  series_code varchar [pk]
+  interest_type interest_type [not null]
+  annual_rate decimal(5,2) []
+  created_at timestamptz [default: `now()`]
+}
+
+// =============================================
+// TRANSACTIONS
+// =============================================
+
+Table transactions {
+  id uuid [pk, default: `gen_random_uuid()`]
+  user_id uuid [not null, ref: > profiles.id]
+  type transaction_type [not null]
+  asset_type asset_type [not null]
+  date date [not null]
+  external_id varchar [note: 'null = added manually']
+  created_at timestamptz [default: `now()`]
+}
+
+Table stock_transactions {
+  transaction_id uuid [pk, ref: - transactions.id]
+  stock_id uuid [not null, ref: > stocks.id]
+  volume decimal(18,8) [not null]
+  price_per_unit decimal(18,4) [not null]
+  currency currency [not null]
+}
+
+Table deposit_transactions {
+  // Term deposits
+  transaction_id uuid [pk, ref: - transactions.id]
+  value decimal(18,2) [not null]
+  currency currency [not null]
+  annual_rate decimal(5,2) [not null]
+  start_date date [not null]
+  maturity_date date [not null]
+}
+
+Table bond_transactions {
+  // Polish treasury bonds
+  transaction_id uuid [pk, ref: - transactions.id]
+  series_code varchar [not null, ref: > bond_series.series_code]
+  quantity int [not null]
+  price_per_unit decimal(10,4)
+}
+
+Table cash_transactions {
+  // Cash deposits
+  transaction_id uuid [pk, ref: - transactions.id]
+  value decimal(18,2) [not null]
+  currency currency [not null]
+}
+
+// =============================================
+// PRICES (daily cache)
+// =============================================
+
+Table asset_prices {
+  id uuid [pk, default: `gen_random_uuid()`]
+  stock_id uuid [not null, ref: > stocks.id]
+  price_date date [not null]
+  price decimal(18,4) [not null]
+  currency currency [not null]
+  updated_at timestamptz [default: `now()`]
+
+  indexes {
+    (stock_id, price_date) [unique]
+  }
+}
+
+Table manual_prices {
+  id uuid [pk, default: `gen_random_uuid()`]
+  user_id uuid [not null, ref: > profiles.id]
+  stock_id uuid [not null, ref: > stocks.id]
+  price_date date [not null]
+  price decimal(18,4) [not null]
+  currency currency [not null]
+  created_at timestamptz [default: `now()`]
+
+  indexes {
+    (user_id, stock_id, price_date) [unique]
+  }
+}
+
+Table exchange_rates {
+  // Exchange rate to PLN: 1 unit of currency = X PLN
+  id uuid [pk, default: `gen_random_uuid()`]
+  currency currency [not null]
+  rate_date date [not null]
+  rate decimal(18,6) [not null]
+  updated_at timestamptz [default: `now()`]
+
+  indexes {
+    (currency, rate_date) [unique]
+  }
+}
