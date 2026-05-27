@@ -8,6 +8,7 @@ dependencies = [
     "alembic",
     "pydantic-settings",
     "python-jose[cryptography]",
+    "psycopg2-binary>=2.9.12",
 ]
 
 [dependency-groups]

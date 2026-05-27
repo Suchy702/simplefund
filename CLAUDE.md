@@ -109,4 +109,6 @@ backend/
 
 ### Rules
 
-- To be defined as the backend is built
+#### Comments
+
+- Add comments only when necessary to understand **why** the code does something non-obvious — never to explain what the code does

@@ -73,6 +73,7 @@ Table transactions {
   type transaction_type [not null]
   asset_type asset_type [not null]
   date date [not null]
+  currency currency [not null]
   external_id varchar [note: 'null = added manually']
   created_at timestamptz [default: `now()`]
 }
@@ -82,14 +83,12 @@ Table stock_transactions {
   stock_id uuid [not null, ref: > stocks.id]
   volume decimal(18,8) [not null]
   price_per_unit decimal(18,4) [not null]
-  currency currency [not null]
 }
 
 Table deposit_transactions {
   // Term deposits
   transaction_id uuid [pk, ref: - transactions.id]
   value decimal(18,2) [not null]
-  currency currency [not null]
   annual_rate decimal(5,2) [not null]
   start_date date [not null]
   maturity_date date [not null]
@@ -107,7 +106,6 @@ Table cash_transactions {
   // Cash deposits
   transaction_id uuid [pk, ref: - transactions.id]
   value decimal(18,2) [not null]
-  currency currency [not null]
 }
 
 // =============================================
