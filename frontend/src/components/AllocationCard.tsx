@@ -1,10 +1,4 @@
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { NestedDonut } from '@/components/NestedDonut'
 import { useAllocation, useHoldings } from '@/api/portfolio'
@@ -16,7 +10,7 @@ const CLASS_ORDER: Record<AssetClass, number> = {
   Depozyt: 2,
 }
 
-export function AllocationCard() {
+export const AllocationCard = () => {
   const { data: allocation, isLoading: allocLoading } = useAllocation()
   const { data: holdings, isLoading: holdingsLoading } = useHoldings()
 
@@ -33,12 +27,6 @@ export function AllocationCard() {
 
   return (
     <Card>
-      <CardHeader>
-        <div>
-          <CardTitle>Alokacja</CardTitle>
-          <CardDescription>klasa aktywów · pojedyncze pozycje</CardDescription>
-        </div>
-      </CardHeader>
       <CardContent>
         {allocLoading || holdingsLoading || !allocation ? (
           <div className="flex flex-col items-center gap-5">

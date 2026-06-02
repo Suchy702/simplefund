@@ -19,7 +19,7 @@ const RANGE_X_LABELS: Record<RangeKey, string[]> = {
   MAX: ['2021', '2022', '2023', '2024', '2026'],
 }
 
-function smoothPath(points: { x: number; y: number }[]): string {
+const smoothPath = (points: { x: number; y: number }[]): string => {
   if (points.length < 2) return ''
   let d = `M ${points[0].x.toFixed(2)} ${points[0].y.toFixed(2)}`
   for (let i = 0; i < points.length - 1; i++) {
@@ -42,10 +42,10 @@ interface PerformanceChartProps {
   height?: number
 }
 
-export function PerformanceChart({
+export const PerformanceChart = ({
   range,
   height = 300,
-}: PerformanceChartProps) {
+}: PerformanceChartProps) => {
   const { data, isLoading } = usePortfolioSeries(range)
   const wrapRef = useRef<HTMLDivElement>(null)
   const width = useElementWidth(wrapRef, 800)

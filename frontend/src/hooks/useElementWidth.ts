@@ -1,9 +1,9 @@
 import { useEffect, useState, type RefObject } from 'react'
 
-export function useElementWidth<T extends HTMLElement>(
+export const useElementWidth = <T extends HTMLElement>(
   ref: RefObject<T>,
   initial: number = 800
-): number {
+): number => {
   const [width, setWidth] = useState<number>(initial)
 
   useEffect(() => {

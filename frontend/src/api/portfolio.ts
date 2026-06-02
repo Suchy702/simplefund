@@ -18,9 +18,8 @@ import {
 
 const SIMULATED_DELAY_MS = 200
 
-function delay<T>(value: T, ms: number = SIMULATED_DELAY_MS): Promise<T> {
-  return new Promise((resolve) => setTimeout(() => resolve(value), ms))
-}
+const delay = <T>(value: T, ms: number = SIMULATED_DELAY_MS): Promise<T> =>
+  new Promise((resolve) => setTimeout(() => resolve(value), ms))
 
 const fetchKpi = (): Promise<PortfolioKpi> => delay(MOCK_KPI)
 const fetchHoldings = (): Promise<Holding[]> => delay(MOCK_HOLDINGS)

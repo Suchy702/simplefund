@@ -9,7 +9,7 @@ interface PerformanceStatsProps {
   range: RangeKey
 }
 
-function labelAt(range: RangeKey, ratio: number): string {
+const labelAt = (range: RangeKey, ratio: number): string => {
   if (range === 'MAX') return `${2021 + Math.round(ratio * 5)}`
   if (range === '1R') {
     const months = [
@@ -49,26 +49,24 @@ interface CellProps {
   toneClass?: string
 }
 
-function StatCell({ label, value, sub, toneClass }: CellProps) {
-  return (
-    <div>
-      <div className="mb-2 text-tiny font-medium uppercase tracking-widest2 text-ink-3">
-        {label}
-      </div>
-      <div
-        className={cn(
-          'mb-1 text-28 font-medium tabular leading-tight tracking-tighter2 text-foreground',
-          toneClass
-        )}
-      >
-        {value}
-      </div>
-      <div className="text-xs text-ink-3">{sub}</div>
+const StatCell = ({ label, value, sub, toneClass }: CellProps) => (
+  <div>
+    <div className="mb-2 text-tiny font-medium uppercase tracking-widest2 text-ink-3">
+      {label}
     </div>
-  )
-}
+    <div
+      className={cn(
+        'mb-1 text-28 font-medium tabular leading-tight tracking-tighter2 text-foreground',
+        toneClass
+      )}
+    >
+      {value}
+    </div>
+    <div className="text-xs text-ink-3">{sub}</div>
+  </div>
+)
 
-export function PerformanceStats({ range }: PerformanceStatsProps) {
+export const PerformanceStats = ({ range }: PerformanceStatsProps) => {
   const { data: series, isLoading } = usePortfolioSeries(range)
 
   if (isLoading || !series) {

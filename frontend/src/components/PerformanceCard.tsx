@@ -20,10 +20,10 @@ interface PerformanceCardProps {
   onRangeChange: (range: RangeKey) => void
 }
 
-export function PerformanceCard({
+export const PerformanceCard = ({
   range,
   onRangeChange,
-}: PerformanceCardProps) {
+}: PerformanceCardProps) => {
   const { data: series, isLoading } = usePortfolioSeries(range)
 
   const headline =

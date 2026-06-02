@@ -21,7 +21,7 @@ import {
 import { useOperations } from '@/api/portfolio'
 import { fmtNumber } from '@/lib/formatters'
 
-export function OperationsTable() {
+export const OperationsTable = () => {
   const { data: ops, isLoading } = useOperations()
 
   return (

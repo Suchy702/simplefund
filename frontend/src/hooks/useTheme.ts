@@ -4,7 +4,7 @@ export type Theme = 'light' | 'dark'
 
 const STORAGE_KEY = 'simplefund:theme'
 
-function readInitialTheme(): Theme {
+const readInitialTheme = (): Theme => {
   if (typeof window === 'undefined') return 'light'
   const stored = window.localStorage.getItem(STORAGE_KEY)
   if (stored === 'light' || stored === 'dark') return stored
@@ -14,7 +14,7 @@ function readInitialTheme(): Theme {
   return prefersDark ? 'dark' : 'light'
 }
 
-export function useTheme() {
+export const useTheme = () => {
   const [theme, setTheme] = useState<Theme>(readInitialTheme)
 
   useEffect(() => {

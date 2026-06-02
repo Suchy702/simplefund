@@ -1,13 +1,4 @@
-import { Search, Settings } from 'lucide-react'
-
-import { Button } from '@/components/ui/button'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
@@ -24,32 +15,12 @@ import { useFxRates, useHoldings } from '@/api/portfolio'
 import { cn } from '@/lib/utils'
 import { fmtMoney, fmtNumber } from '@/lib/formatters'
 
-export function HoldingsTable() {
+export const HoldingsTable = () => {
   const { data: holdings, isLoading } = useHoldings()
   const { data: fx } = useFxRates()
 
   return (
     <Card>
-      <CardHeader>
-        <div>
-          <CardTitle>Aktywa w portfelu</CardTitle>
-          <CardDescription>
-            {holdings
-              ? `${holdings.length} pozycji · kliknij cenę aby edytować`
-              : ' '}
-          </CardDescription>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm">
-            <Search size={13} />
-            Szukaj
-          </Button>
-          <Button variant="outline" size="sm">
-            <Settings size={13} />
-            Kolumny
-          </Button>
-        </div>
-      </CardHeader>
       <CardContent className="p-0">
         {isLoading || !holdings ? (
           <div className="p-6">
