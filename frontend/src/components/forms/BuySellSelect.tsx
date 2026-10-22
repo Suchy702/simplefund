@@ -1,4 +1,9 @@
 import {
+  OPERATION_LABELS,
+  TRADE_OPERATION_TYPES,
+  type TradeOperationType,
+} from '@/types/portfolio'
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -7,8 +12,8 @@ import {
 } from '@/components/ui/select'
 
 interface BuySellSelectProps {
-  value: string
-  onValueChange: (value: string) => void
+  value: TradeOperationType | ''
+  onValueChange: (value: TradeOperationType) => void
   label?: string
   error?: string
 }
@@ -24,13 +29,22 @@ export const BuySellSelect = ({
       {label && (
         <label className="text-13 font-medium text-foreground">{label}</label>
       )}
-      <Select value={value} onValueChange={onValueChange}>
+      <Select
+        value={value}
+        onValueChange={(nextValue) => {
+          if (nextValue === 'buy' || nextValue === 'sell')
+            onValueChange(nextValue)
+        }}
+      >
         <SelectTrigger className={error ? 'border-destructive' : undefined}>
           <SelectValue placeholder="Wybierz typ" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="buy">Zakup</SelectItem>
-          <SelectItem value="sell">Sprzedaż</SelectItem>
+          {TRADE_OPERATION_TYPES.map((type) => (
+            <SelectItem key={type} value={type}>
+              {OPERATION_LABELS[type]}
+            </SelectItem>
+          ))}
         </SelectContent>
       </Select>
       {error && <p className="text-12 text-destructive">{error}</p>}

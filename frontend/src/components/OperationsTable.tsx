@@ -1,3 +1,4 @@
+import { OPERATION_LABELS } from '@/types/portfolio'
 import { Download, Trash2 } from 'lucide-react'
 
 import { Badge } from '@/components/ui/badge'
@@ -67,8 +68,14 @@ export const OperationsTable = () => {
               {ops.map((o, i) => (
                 <TableRow key={`${o.name}-${o.date}-${i}`}>
                   <TableCell>
-                    <Badge variant={o.type === 'Zakup' ? 'buy' : 'sell'}>
-                      {o.type}
+                    <Badge
+                      variant={
+                        o.type === 'buy' || o.type === 'deposit'
+                          ? 'buy'
+                          : 'sell'
+                      }
+                    >
+                      {OPERATION_LABELS[o.type]}
                     </Badge>
                   </TableCell>
                   <TableCell>{o.kind}</TableCell>

@@ -1,3 +1,4 @@
+import { TRADE_OPERATION_TYPES } from '@/types/portfolio'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -22,7 +23,7 @@ import { BuySellSelect, FloatInput } from '@/components/forms'
 import { cn } from '@/lib/utils'
 
 const schema = z.object({
-  operationType: z.enum(['buy', 'sell'], {
+  operationType: z.enum(TRADE_OPERATION_TYPES, {
     required_error: 'Wybierz typ operacji',
   }),
   value: z.coerce

@@ -1,7 +1,18 @@
 export type RangeKey = '1M' | '3M' | '6M' | '1R' | 'MAX'
 export type AssetClass = 'Akcje' | 'Lokata' | 'Depozyt'
-export type Currency = 'PLN' | 'USD'
-export type OperationType = 'Zakup' | 'Sprzedaż'
+export const CURRENCIES = ['PLN', 'USD', 'EUR'] as const
+export type Currency = (typeof CURRENCIES)[number]
+export const TRADE_OPERATION_TYPES = ['buy', 'sell'] as const
+export const CASH_OPERATION_TYPES = ['deposit', 'withdrawal'] as const
+export type TradeOperationType = (typeof TRADE_OPERATION_TYPES)[number]
+export type OperationType =
+  TradeOperationType | (typeof CASH_OPERATION_TYPES)[number]
+export const OPERATION_LABELS: Record<OperationType, string> = {
+  buy: 'Zakup',
+  sell: 'Sprzedaż',
+  deposit: 'Wpłata',
+  withdrawal: 'Wypłata',
+}
 export type OperationKind = 'Akcje' | 'ETF' | 'Lokata' | 'Depozyt'
 
 export interface Holding {
@@ -20,7 +31,7 @@ export interface Holding {
 
 export interface Operation {
   type: OperationType
-  kind: OperationKind | string
+  kind: OperationKind
   name: string
   qty: number
   price: number
@@ -47,4 +58,9 @@ export interface PortfolioKpi {
 
 export interface FxRates {
   USD_PLN: number
+}
+
+export interface PortfolioPoint {
+  date: string
+  value: number
 }

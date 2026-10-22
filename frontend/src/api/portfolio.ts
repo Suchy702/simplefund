@@ -5,6 +5,7 @@ import type {
   Holding,
   Operation,
   PortfolioKpi,
+  PortfolioPoint,
   RangeKey,
 } from '@/types/portfolio'
 import {
@@ -26,7 +27,7 @@ const fetchHoldings = (): Promise<Holding[]> => delay(MOCK_HOLDINGS)
 const fetchAllocation = (): Promise<Allocation[]> => delay(MOCK_ALLOCATION)
 const fetchOperations = (): Promise<Operation[]> => delay(MOCK_OPERATIONS)
 const fetchFxRates = (): Promise<FxRates> => delay(MOCK_FX)
-const fetchSeries = (range: RangeKey): Promise<number[]> =>
+const fetchSeries = (range: RangeKey): Promise<PortfolioPoint[]> =>
   delay(generateSeries(range))
 
 export const usePortfolioKpi = () =>

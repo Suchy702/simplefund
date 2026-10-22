@@ -1,3 +1,8 @@
+import {
+  CURRENCIES,
+  CASH_OPERATION_TYPES,
+  OPERATION_LABELS,
+} from '@/types/portfolio'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -19,13 +24,13 @@ import {
 import { FloatInput } from '@/components/forms'
 
 const schema = z.object({
-  operationType: z.enum(['deposit', 'withdrawal'], {
+  operationType: z.enum(CASH_OPERATION_TYPES, {
     required_error: 'Wybierz typ operacji',
   }),
   value: z.coerce
     .number({ invalid_type_error: 'Podaj wartość' })
     .positive('Wartość musi być większa od zera'),
-  currency: z.enum(['PLN', 'USD', 'EUR'], {
+  currency: z.enum(CURRENCIES, {
     required_error: 'Wybierz walutę',
   }),
 })
@@ -87,8 +92,11 @@ export const AddCashOperationModal = ({
                     <SelectValue placeholder="Wybierz typ operacji" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="deposit">Wpłata</SelectItem>
-                    <SelectItem value="withdrawal">Wypłata</SelectItem>
+                    {CASH_OPERATION_TYPES.map((type) => (
+                      <SelectItem key={type} value={type}>
+                        {OPERATION_LABELS[type]}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               )}
@@ -123,9 +131,11 @@ export const AddCashOperationModal = ({
                     <SelectValue placeholder="Wybierz walutę" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="PLN">PLN</SelectItem>
-                    <SelectItem value="USD">USD</SelectItem>
-                    <SelectItem value="EUR">EUR</SelectItem>
+                    {CURRENCIES.map((currency) => (
+                      <SelectItem key={currency} value={currency}>
+                        {currency}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               )}

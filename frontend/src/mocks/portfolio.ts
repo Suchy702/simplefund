@@ -1,3 +1,11 @@
+import {
+  addDays,
+  differenceInCalendarDays,
+  format,
+  parseISO,
+  subMonths,
+} from 'date-fns'
+import { pl } from 'date-fns/locale'
 import type {
   Holding,
   Operation,
@@ -5,9 +13,12 @@ import type {
   PortfolioKpi,
   RangeKey,
   FxRates,
+  PortfolioPoint,
 } from '@/types/portfolio'
 
 export const MOCK_FX: FxRates = { USD_PLN: 4.05 }
+
+export const MOCK_AS_OF_DATE = '2026-04-25'
 
 export const MOCK_KPI: PortfolioKpi = {
   totalContrib: 127483.49,
@@ -16,7 +27,7 @@ export const MOCK_KPI: PortfolioKpi = {
   roi: -1.98,
   cagr: -1.36,
   syncedMinutesAgo: 8,
-  asOfDate: '25 kwi 2026',
+  asOfDate: format(parseISO(MOCK_AS_OF_DATE), 'd MMM yyyy', { locale: pl }),
 }
 
 export const MOCK_HOLDINGS: Holding[] = [
@@ -108,7 +119,7 @@ export const MOCK_ALLOCATION: Allocation[] = [
 
 export const MOCK_OPERATIONS: Operation[] = [
   {
-    type: 'Zakup',
+    type: 'buy',
     kind: 'Akcje',
     name: 'ATAL SA',
     qty: 5.0,
@@ -118,7 +129,7 @@ export const MOCK_OPERATIONS: Operation[] = [
     date: '16.11.2025',
   },
   {
-    type: 'Zakup',
+    type: 'buy',
     kind: 'Akcje',
     name: 'DUALITY SA',
     qty: 5.0,
@@ -128,7 +139,7 @@ export const MOCK_OPERATIONS: Operation[] = [
     date: '22.11.2025',
   },
   {
-    type: 'Zakup',
+    type: 'buy',
     kind: 'ETF',
     name: 'EIMI.L',
     qty: 0.47,
@@ -138,7 +149,7 @@ export const MOCK_OPERATIONS: Operation[] = [
     date: '24.01.2025',
   },
   {
-    type: 'Zakup',
+    type: 'buy',
     kind: 'Akcje',
     name: 'LPP SA',
     qty: 1.0,
@@ -148,7 +159,7 @@ export const MOCK_OPERATIONS: Operation[] = [
     date: '8.12.2025',
   },
   {
-    type: 'Zakup',
+    type: 'buy',
     kind: 'ETF',
     name: 'EIMI.L',
     qty: 18.0,
@@ -158,7 +169,7 @@ export const MOCK_OPERATIONS: Operation[] = [
     date: '10.10.2025',
   },
   {
-    type: 'Zakup',
+    type: 'buy',
     kind: 'ETF',
     name: 'IWDA.L',
     qty: 0.4,
@@ -168,7 +179,7 @@ export const MOCK_OPERATIONS: Operation[] = [
     date: '24.01.2025',
   },
   {
-    type: 'Sprzedaż',
+    type: 'sell',
     kind: 'Akcje',
     name: 'PKN ORLEN',
     qty: 12.0,
@@ -178,7 +189,7 @@ export const MOCK_OPERATIONS: Operation[] = [
     date: '04.11.2025',
   },
   {
-    type: 'Zakup',
+    type: 'buy',
     kind: 'Lokata',
     name: 'Lokata 5.00%',
     qty: 1,
@@ -189,7 +200,7 @@ export const MOCK_OPERATIONS: Operation[] = [
   },
 ]
 
-export function generateSeries(rangeKey: RangeKey): number[] {
+export function generateSeries(rangeKey: RangeKey): PortfolioPoint[] {
   const target = MOCK_KPI.totalValue
   const seedConfig: Record<
     RangeKey,
@@ -222,5 +233,21 @@ export function generateSeries(rangeKey: RangeKey): number[] {
     pts.push(v)
   }
   pts[pts.length - 1] = target
-  return pts
+  const months: Record<RangeKey, number> = {
+    '1M': 1,
+    '3M': 3,
+    '6M': 6,
+    '1R': 12,
+    MAX: 60,
+  }
+  const end = parseISO(MOCK_AS_OF_DATE)
+  const startDate = subMonths(end, months[rangeKey])
+  const days = differenceInCalendarDays(end, startDate)
+  return pts.map((value, index) => ({
+    date: format(
+      addDays(startDate, Math.round((index * days) / (pts.length - 1))),
+      'yyyy-MM-dd'
+    ),
+    value,
+  }))
 }

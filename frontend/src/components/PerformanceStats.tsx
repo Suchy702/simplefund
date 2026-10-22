@@ -3,43 +3,11 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { usePortfolioSeries } from '@/api/portfolio'
 import { cn } from '@/lib/utils'
 import { fmtMoney, fmtPct } from '@/lib/formatters'
+import { calculatePerformanceStats, formatSeriesDate } from '@/lib/performance'
 import type { RangeKey } from '@/types/portfolio'
 
 interface PerformanceStatsProps {
   range: RangeKey
-}
-
-const labelAt = (range: RangeKey, ratio: number): string => {
-  if (range === 'MAX') return `${2021 + Math.round(ratio * 5)}`
-  if (range === '1R') {
-    const months = [
-      'kwi',
-      'maj',
-      'cze',
-      'lip',
-      'sie',
-      'wrz',
-      'paź',
-      'lis',
-      'gru',
-      'sty',
-      'lut',
-      'mar',
-    ]
-    const i = Math.floor(ratio * 11.99)
-    const year = i < 9 ? 2025 : 2026
-    return `${months[i]} ${String(year).slice(2)}`
-  }
-  if (range === '6M') {
-    const months = ['lis', 'gru', 'sty', 'lut', 'mar', 'kwi']
-    return `${months[Math.floor(ratio * 5.99)]} 26`
-  }
-  if (range === '3M') {
-    const months = ['lut', 'mar', 'kwi']
-    return `${months[Math.floor(ratio * 2.99)]} 26`
-  }
-  if (range === '1M') return `${30 - Math.round(ratio * 30)}d temu`
-  return ''
 }
 
 interface CellProps {
@@ -69,7 +37,9 @@ const StatCell = ({ label, value, sub, toneClass }: CellProps) => (
 export const PerformanceStats = ({ range }: PerformanceStatsProps) => {
   const { data: series, isLoading } = usePortfolioSeries(range)
 
-  if (isLoading || !series) {
+  const stats = series ? calculatePerformanceStats(series) : null
+
+  if (isLoading || !stats) {
     return (
       <Card className="mb-4 px-8 py-6">
         <div className="grid grid-cols-4 gap-8">
@@ -85,26 +55,7 @@ export const PerformanceStats = ({ range }: PerformanceStatsProps) => {
     )
   }
 
-  const peak = Math.max(...series)
-  const trough = Math.min(...series)
-  const peakIdx = series.indexOf(peak)
-  const troughIdx = series.indexOf(trough)
-  const peakLabel = labelAt(range, peakIdx / (series.length - 1))
-  const troughLabel = labelAt(range, troughIdx / (series.length - 1))
-
-  const mean = series.reduce((a, b) => a + b, 0) / series.length
-  const variance =
-    series.reduce((a, b) => a + (b - mean) ** 2, 0) / series.length
-  const stdPct = (Math.sqrt(variance) / mean) * 100
-
-  let maxDd = 0
-  let peakSoFar = series[0]
-  for (const v of series) {
-    if (v > peakSoFar) peakSoFar = v
-    const dd = (v - peakSoFar) / peakSoFar
-    if (dd < maxDd) maxDd = dd
-  }
-  const maxDdPln = maxDd * peak
+  const { peak, trough, peakDate, troughDate, stdPct, maxDd, maxDdPln } = stats
 
   return (
     <Card className="mb-4 px-8 py-6">
@@ -112,12 +63,12 @@ export const PerformanceStats = ({ range }: PerformanceStatsProps) => {
         <StatCell
           label="Szczyt (ATH)"
           value={Math.round(peak).toLocaleString('pl-PL')}
-          sub={`PLN · ${peakLabel}`}
+          sub={`PLN · ${formatSeriesDate(peakDate)}`}
         />
         <StatCell
           label="Minimum"
           value={Math.round(trough).toLocaleString('pl-PL')}
-          sub={`PLN · ${troughLabel}`}
+          sub={`PLN · ${formatSeriesDate(troughDate)}`}
         />
         <StatCell
           label="Odch. standardowe"

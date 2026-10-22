@@ -4,20 +4,13 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { usePortfolioSeries } from '@/api/portfolio'
 import { useElementWidth } from '@/hooks/useElementWidth'
 import { fmtMoney } from '@/lib/formatters'
+import { formatSeriesDate } from '@/lib/performance'
 import type { RangeKey } from '@/types/portfolio'
 
 const PAD_LEFT = 8
 const PAD_RIGHT = 56
 const PAD_TOP = 12
 const PAD_BOTTOM = 30
-
-const RANGE_X_LABELS: Record<RangeKey, string[]> = {
-  '1M': ['28d', '21d', '14d', '7d', 'dziś'],
-  '3M': ['paź', 'lis', 'gru', 'sty', 'lut'],
-  '6M': ['lis', 'gru', 'sty', 'lut', 'mar'],
-  '1R': ['kwi', 'cze', 'sie', 'paź', 'gru', 'lut'],
-  MAX: ['2021', '2022', '2023', '2024', '2026'],
-}
 
 const smoothPath = (points: { x: number; y: number }[]): string => {
   if (points.length < 2) return ''
@@ -50,10 +43,8 @@ export const PerformanceChart = ({
   const wrapRef = useRef<HTMLDivElement>(null)
   const width = useElementWidth(wrapRef, 800)
   const [hover, setHover] = useState<{
+    range: RangeKey
     idx: number
-    px: number
-    py: number
-    val: number
   } | null>(null)
 
   const innerW = Math.max(100, width - PAD_LEFT - PAD_RIGHT)
@@ -61,15 +52,16 @@ export const PerformanceChart = ({
 
   const computed = useMemo(() => {
     if (!data || data.length === 0) return null
-    const dataMin = Math.min(...data)
-    const dataMax = Math.max(...data)
+    const dataMin = Math.min(...data.map((point) => point.value))
+    const dataMax = Math.max(...data.map((point) => point.value))
     const step = 20000
     const min = Math.floor((dataMin * 0.96) / step) * step
     const max = Math.ceil((dataMax * 1.04) / step) * step
-    const xStep = innerW / (data.length - 1)
+    const xStep = innerW / Math.max(1, data.length - 1)
     const x = (i: number) => PAD_LEFT + i * xStep
-    const y = (v: number) => PAD_TOP + innerH * (1 - (v - min) / (max - min))
-    const points = data.map((v, i) => ({ x: x(i), y: y(v) }))
+    const y = (v: number) =>
+      PAD_TOP + innerH * (1 - (v - min) / (max - min || step))
+    const points = data.map((point, i) => ({ x: x(i), y: y(point.value) }))
     const linePath = smoothPath(points)
     const areaPath = `${linePath} L ${x(data.length - 1).toFixed(2)} ${(PAD_TOP + innerH).toFixed(2)} L ${PAD_LEFT.toFixed(2)} ${(PAD_TOP + innerH).toFixed(2)} Z`
     const gridY: number[] = []
@@ -77,23 +69,16 @@ export const PerformanceChart = ({
     return { x, y, xStep, linePath, areaPath, gridY, min, max }
   }, [data, innerW, innerH])
 
-  const xLabels = RANGE_X_LABELS[range]
-  const tooltipDate = useMemo(() => {
-    if (!hover || !data) return ''
-    const ratio = hover.idx / (data.length - 1)
-    switch (range) {
-      case '1M':
-        return `${30 - Math.round(ratio * 30)}d temu`
-      case '3M':
-        return `${Math.round((1 - ratio) * 90)}d temu`
-      case '6M':
-        return `${Math.round((1 - ratio) * 180)}d temu`
-      case '1R':
-        return `${Math.round((1 - ratio) * 52)}t temu`
-      case 'MAX':
-        return `${2021 + Math.round(ratio * 5)}`
-    }
-  }, [hover, range, data])
+  const hoveredPoint = hover?.range === range ? data?.[hover.idx] : undefined
+  const activeHover =
+    hoveredPoint && hover && computed
+      ? {
+          px: computed.x(hover.idx),
+          py: computed.y(hoveredPoint.value),
+          val: hoveredPoint.value,
+          date: formatSeriesDate(hoveredPoint.date),
+        }
+      : null
 
   if (isLoading || !data || !computed) {
     return (
@@ -103,8 +88,15 @@ export const PerformanceChart = ({
     )
   }
 
-  const trend = data[data.length - 1] - data[0]
+  const trend = data[data.length - 1].value - data[0].value
   const lineColor = trend >= 0 ? 'var(--pos)' : 'var(--neg)'
+  const labelCount = Math.min(5, data.length)
+  const xLabels = Array.from({ length: labelCount }, (_, index) => {
+    const pointIndex = Math.round(
+      (index * (data.length - 1)) / Math.max(1, labelCount - 1)
+    )
+    return { index: pointIndex, label: formatSeriesDate(data[pointIndex].date) }
+  })
   const gradId = `areaGrad-${range}`
 
   function onMove(e: React.MouseEvent<HTMLDivElement>) {
@@ -115,12 +107,7 @@ export const PerformanceChart = ({
       0,
       Math.min(data.length - 1, Math.round((px - PAD_LEFT) / computed.xStep))
     )
-    setHover({
-      idx,
-      px: computed.x(idx),
-      py: computed.y(data[idx]),
-      val: data[idx],
-    })
+    setHover({ range, idx })
   }
 
   return (
@@ -188,11 +175,11 @@ export const PerformanceChart = ({
           strokeLinecap="round"
         />
 
-        {hover && (
+        {activeHover && (
           <>
             <line
-              x1={hover.px}
-              x2={hover.px}
+              x1={activeHover.px}
+              x2={activeHover.px}
               y1={PAD_TOP}
               y2={PAD_TOP + innerH}
               stroke="var(--ink-3)"
@@ -200,8 +187,8 @@ export const PerformanceChart = ({
               strokeDasharray="3 3"
             />
             <circle
-              cx={hover.px}
-              cy={hover.py}
+              cx={activeHover.px}
+              cy={activeHover.py}
               r="4.5"
               fill={lineColor}
               stroke="var(--bg-elevated)"
@@ -210,10 +197,10 @@ export const PerformanceChart = ({
           </>
         )}
 
-        {xLabels.map((lbl, i) => (
+        {xLabels.map((tick, i) => (
           <text
             key={`xl-${i}`}
-            x={PAD_LEFT + (i / (xLabels.length - 1)) * innerW}
+            x={computed.x(tick.index)}
             y={height - 8}
             textAnchor={
               i === 0 ? 'start' : i === xLabels.length - 1 ? 'end' : 'middle'
@@ -221,7 +208,7 @@ export const PerformanceChart = ({
             fontSize="11"
             fill="var(--ink-3)"
           >
-            {lbl}
+            {tick.label}
           </text>
         ))}
       </svg>
@@ -229,14 +216,14 @@ export const PerformanceChart = ({
       <div
         className="pointer-events-none absolute -translate-x-1/2 -translate-y-[110%] rounded-sm bg-foreground px-2.5 py-2 text-xs text-card shadow-md transition-opacity"
         style={{
-          left: hover ? hover.px : 0,
-          top: hover ? hover.py : 0,
-          opacity: hover ? 1 : 0,
+          left: activeHover ? activeHover.px : 0,
+          top: activeHover ? activeHover.py : 0,
+          opacity: activeHover ? 1 : 0,
         }}
       >
-        <div className="mb-0.5 text-tiny text-ink-4">{tooltipDate}</div>
+        <div className="mb-0.5 text-tiny text-ink-4">{activeHover?.date}</div>
         <div className="font-mono tabular font-semibold">
-          {hover ? fmtMoney(hover.val, 'PLN') : ''}
+          {activeHover ? fmtMoney(activeHover.val, 'PLN') : ''}
         </div>
       </div>
     </div>
