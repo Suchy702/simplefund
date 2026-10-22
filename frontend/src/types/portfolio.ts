@@ -1,6 +1,7 @@
 export type RangeKey = '1M' | '3M' | '6M' | '1R' | 'MAX'
-export type AssetClass = 'Akcje' | 'Lokata' | 'Depozyt'
-export const CURRENCIES = ['PLN', 'USD', 'EUR'] as const
+export type AssetClass =
+  'Akcje' | 'Lokata' | 'Depozyt' | 'Gotówka' | 'Obligacje'
+export const CURRENCIES = ['PLN', 'USD', 'EUR', 'GBP', 'CHF'] as const
 export type Currency = (typeof CURRENCIES)[number]
 export const TRADE_OPERATION_TYPES = ['buy', 'sell'] as const
 export const CASH_OPERATION_TYPES = ['deposit', 'withdrawal'] as const
@@ -13,29 +14,31 @@ export const OPERATION_LABELS: Record<OperationType, string> = {
   deposit: 'Wpłata',
   withdrawal: 'Wypłata',
 }
-export type OperationKind = 'Akcje' | 'ETF' | 'Lokata' | 'Depozyt'
+export type OperationKind = AssetClass | 'ETF'
 
 export interface Holding {
+  id: string
   ticker: string
   name: string
   class: AssetClass
   qty: number
   currency: Currency
   price: number | null
-  cost: number
-  value: number
-  change: number
-  changePct: number
+  cost: number | null
+  value: number | null
+  change: number | null
+  changePct: number | null
   color: string
 }
 
 export interface Operation {
+  id: string
   type: OperationType
   kind: OperationKind
   name: string
-  qty: number
-  price: number
-  value: number
+  qty: number | null
+  price: number | null
+  value: number | null
   currency: Currency
   date: string
 }
@@ -56,8 +59,11 @@ export interface PortfolioKpi {
   asOfDate: string
 }
 
-export interface FxRates {
-  USD_PLN: number
+export interface CashOperationInput {
+  operationType: (typeof CASH_OPERATION_TYPES)[number]
+  value: string
+  currency: Currency
+  date: string
 }
 
 export interface PortfolioPoint {

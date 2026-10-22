@@ -30,8 +30,9 @@ const AppContent = () => {
   useEffect(() => {
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(() => {
-      qc.invalidateQueries({ queryKey: ['auth'] })
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      qc.setQueryData(['auth', 'session'], session)
+      if (!session) qc.removeQueries({ queryKey: ['portfolio'] })
     })
     return () => subscription.unsubscribe()
   }, [qc])

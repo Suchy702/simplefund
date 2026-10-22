@@ -76,6 +76,10 @@ Table transactions {
   currency currency [not null]
   external_id varchar [note: 'null = added manually']
   created_at timestamptz [default: `now()`]
+
+  indexes {
+    (user_id, date) [name: 'ix_transactions_user_date']
+  }
 }
 
 Table stock_transactions {
@@ -105,7 +109,11 @@ Table bond_transactions {
 Table cash_transactions {
   // Cash deposits
   transaction_id uuid [pk, ref: - transactions.id]
-  value decimal(18,2) [not null]
+  value decimal(18,2) [not null, note: 'Must be positive; buy = deposit, sell = withdrawal']
+
+  checks {
+    `value > 0` [name: 'ck_cash_value_positive']
+  }
 }
 
 // =============================================

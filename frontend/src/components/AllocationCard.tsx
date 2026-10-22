@@ -8,6 +8,8 @@ const CLASS_ORDER: Record<AssetClass, number> = {
   Akcje: 0,
   Lokata: 1,
   Depozyt: 2,
+  Gotówka: 3,
+  Obligacje: 4,
 }
 
 export const AllocationCard = () => {
@@ -16,8 +18,12 @@ export const AllocationCard = () => {
 
   const innerSegments = (() => {
     if (!holdings) return []
-    const total = holdings.reduce((s, h) => s + h.value, 0)
-    const sorted = [...holdings].sort(
+    const valued = holdings.filter(
+      (h): h is typeof h & { value: number } => h.value !== null && h.value > 0
+    )
+    const total = valued.reduce((s, h) => s + h.value, 0)
+    if (total === 0) return []
+    const sorted = [...valued].sort(
       (a, b) =>
         (CLASS_ORDER[a.class] ?? 9) - (CLASS_ORDER[b.class] ?? 9) ||
         b.value - a.value

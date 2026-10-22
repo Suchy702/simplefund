@@ -21,9 +21,12 @@ import {
 } from '@/components/ui/table'
 import { useOperations } from '@/api/portfolio'
 import { fmtNumber } from '@/lib/formatters'
+import { format, parseISO } from 'date-fns'
 
 export const OperationsTable = () => {
-  const { data: ops, isLoading } = useOperations()
+  const { data: ops, isLoading, isError, refetch } = useOperations()
+  const numberOrDash = (value: number | null) =>
+    value === null ? '—' : fmtNumber(value)
 
   return (
     <Card>
@@ -45,7 +48,19 @@ export const OperationsTable = () => {
         </div>
       </CardHeader>
       <CardContent className="p-0">
-        {isLoading || !ops ? (
+        {isError ? (
+          <div role="alert" className="p-6 text-sm">
+            Nie udało się pobrać historii operacji.
+            <Button
+              variant="outline"
+              size="sm"
+              className="ml-3"
+              onClick={() => refetch()}
+            >
+              Spróbuj ponownie
+            </Button>
+          </div>
+        ) : isLoading || !ops ? (
           <div className="p-6">
             <Skeleton className="h-64 w-full" />
           </div>
@@ -65,8 +80,18 @@ export const OperationsTable = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {ops.map((o, i) => (
-                <TableRow key={`${o.name}-${o.date}-${i}`}>
+              {ops.length === 0 && (
+                <TableRow>
+                  <TableCell
+                    colSpan={9}
+                    className="py-10 text-center text-ink-3"
+                  >
+                    Brak operacji. Dodaj pierwszą wpłatę gotówki.
+                  </TableCell>
+                </TableRow>
+              )}
+              {ops.map((o) => (
+                <TableRow key={o.id}>
                   <TableCell>
                     <Badge
                       variant={
@@ -81,17 +106,17 @@ export const OperationsTable = () => {
                   <TableCell>{o.kind}</TableCell>
                   <TableCell className="font-medium">{o.name}</TableCell>
                   <TableCell className="text-right font-mono tabular">
-                    {fmtNumber(o.qty)}
+                    {numberOrDash(o.qty)}
                   </TableCell>
                   <TableCell className="text-right font-mono tabular">
-                    {fmtNumber(o.price)}
+                    {numberOrDash(o.price)}
                   </TableCell>
                   <TableCell className="text-right font-mono tabular font-medium">
-                    {fmtNumber(o.value)}
+                    {numberOrDash(o.value)}
                   </TableCell>
                   <TableCell>{o.currency}</TableCell>
                   <TableCell className="font-mono text-xs text-ink-3">
-                    {o.date}
+                    {format(parseISO(o.date), 'dd.MM.yyyy')}
                   </TableCell>
                   <TableCell>
                     <Button

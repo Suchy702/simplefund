@@ -1,21 +1,16 @@
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useSession } from '@/api/auth'
+import { apiRequest } from '@/api/client'
 import type {
   Allocation,
-  FxRates,
+  CashOperationInput,
   Holding,
   Operation,
   PortfolioKpi,
   PortfolioPoint,
   RangeKey,
 } from '@/types/portfolio'
-import {
-  MOCK_ALLOCATION,
-  MOCK_FX,
-  MOCK_HOLDINGS,
-  MOCK_KPI,
-  MOCK_OPERATIONS,
-  generateSeries,
-} from '@/mocks/portfolio'
+import { MOCK_ALLOCATION, MOCK_KPI, generateSeries } from '@/mocks/portfolio'
 
 const SIMULATED_DELAY_MS = 200
 
@@ -23,27 +18,54 @@ const delay = <T>(value: T, ms: number = SIMULATED_DELAY_MS): Promise<T> =>
   new Promise((resolve) => setTimeout(() => resolve(value), ms))
 
 const fetchKpi = (): Promise<PortfolioKpi> => delay(MOCK_KPI)
-const fetchHoldings = (): Promise<Holding[]> => delay(MOCK_HOLDINGS)
 const fetchAllocation = (): Promise<Allocation[]> => delay(MOCK_ALLOCATION)
-const fetchOperations = (): Promise<Operation[]> => delay(MOCK_OPERATIONS)
-const fetchFxRates = (): Promise<FxRates> => delay(MOCK_FX)
 const fetchSeries = (range: RangeKey): Promise<PortfolioPoint[]> =>
   delay(generateSeries(range))
 
 export const usePortfolioKpi = () =>
   useQuery({ queryKey: ['portfolio', 'kpi'], queryFn: fetchKpi })
 
-export const useHoldings = () =>
-  useQuery({ queryKey: ['portfolio', 'holdings'], queryFn: fetchHoldings })
+export const useHoldings = () => {
+  const { data: session } = useSession()
+  const userId = session?.user.id
+  return useQuery({
+    queryKey: ['portfolio', userId, 'holdings'],
+    queryFn: ({ signal }) =>
+      apiRequest<Holding[]>('/portfolio/holdings', userId!, { signal }),
+    enabled: Boolean(userId),
+  })
+}
 
 export const useAllocation = () =>
   useQuery({ queryKey: ['portfolio', 'allocation'], queryFn: fetchAllocation })
 
-export const useOperations = () =>
-  useQuery({ queryKey: ['portfolio', 'operations'], queryFn: fetchOperations })
+export const useOperations = () => {
+  const { data: session } = useSession()
+  const userId = session?.user.id
+  return useQuery({
+    queryKey: ['portfolio', userId, 'operations'],
+    queryFn: ({ signal }) =>
+      apiRequest<Operation[]>('/transactions', userId!, { signal }),
+    enabled: Boolean(userId),
+  })
+}
 
-export const useFxRates = () =>
-  useQuery({ queryKey: ['fx', 'rates'], queryFn: fetchFxRates })
+export const useAddCashOperation = () => {
+  const queryClient = useQueryClient()
+  const { data: session } = useSession()
+  const userId = session?.user.id
+  return useMutation({
+    mutationFn: (data: CashOperationInput) => {
+      if (!userId) throw new Error('Zaloguj się ponownie.')
+      return apiRequest<Operation>('/transactions/cash', userId, {
+        method: 'POST',
+        body: JSON.stringify(data),
+      })
+    },
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: ['portfolio', userId] }),
+  })
+}
 
 export const usePortfolioSeries = (range: RangeKey) =>
   useQuery({

@@ -2,7 +2,17 @@ import datetime
 import uuid
 from decimal import Decimal
 
-from sqlalchemy import Date, DateTime, Enum, ForeignKey, Integer, Numeric, String
+from sqlalchemy import (
+    CheckConstraint,
+    Date,
+    DateTime,
+    Enum,
+    ForeignKey,
+    Index,
+    Integer,
+    Numeric,
+    String,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base
@@ -11,6 +21,7 @@ from app.models.enums import AssetType, Currency, TransactionType
 
 class Transaction(Base):
     __tablename__ = "transactions"
+    __table_args__ = (Index("ix_transactions_user_date", "user_id", "date"),)
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     user_id: Mapped[uuid.UUID] = mapped_column(
@@ -66,6 +77,7 @@ class BondTransaction(Base):
 
 class CashTransaction(Base):
     __tablename__ = "cash_transactions"
+    __table_args__ = (CheckConstraint("value > 0", name="ck_cash_value_positive"),)
 
     transaction_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("transactions.id"), primary_key=True
