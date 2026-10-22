@@ -4,6 +4,7 @@ import { apiRequest } from '@/api/client'
 import type {
   Allocation,
   CashOperationInput,
+  DepositOperationInput,
   Holding,
   Operation,
   PortfolioKpi,
@@ -58,6 +59,23 @@ export const useAddCashOperation = () => {
     mutationFn: (data: CashOperationInput) => {
       if (!userId) throw new Error('Zaloguj się ponownie.')
       return apiRequest<Operation>('/transactions/cash', userId, {
+        method: 'POST',
+        body: JSON.stringify(data),
+      })
+    },
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: ['portfolio', userId] }),
+  })
+}
+
+export const useAddDepositOperation = () => {
+  const queryClient = useQueryClient()
+  const { data: session } = useSession()
+  const userId = session?.user.id
+  return useMutation({
+    mutationFn: (data: DepositOperationInput) => {
+      if (!userId) throw new Error('Zaloguj się ponownie.')
+      return apiRequest<Operation>('/transactions/deposit', userId, {
         method: 'POST',
         body: JSON.stringify(data),
       })

@@ -39,6 +39,7 @@ Enum currency {
 Table profiles {
   id uuid [pk, note: 'References auth.users.id']
   email varchar [not null, unique]
+  role varchar [not null, default: 'user', note: 'user or admin; writable only by trusted backend/database roles']
   created_at timestamptz [default: `now()`]
   updated_at timestamptz [default: `now()`]
 }

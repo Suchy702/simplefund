@@ -8,10 +8,15 @@ from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
-from app.models import CashTransaction, Profile, Transaction
+from app.models import CashTransaction, DepositTransaction, Profile, Transaction
 from app.models.enums import AssetType, Currency, TransactionType
 from app.repositories.portfolio import exchange_rates, stock_prices, transaction_rows
-from app.schemas.portfolio import CashOperationCreate, Holding, Operation
+from app.schemas.portfolio import (
+    CashOperationCreate,
+    DepositOperationCreate,
+    Holding,
+    Operation,
+)
 
 ZERO = Decimal(0)
 ONE = Decimal(1)
@@ -110,6 +115,40 @@ def create_cash_operation(
     return result
 
 
+def create_deposit_operation(
+    db: Session, user: dict, data: DepositOperationCreate
+) -> Operation:
+    user_id = UUID(user["sub"])
+    with db.begin():
+        if not user.get("email"):
+            raise HTTPException(400, "Konto nie ma adresu e-mail")
+        db.execute(
+            insert(Profile)
+            .values(id=user_id, email=user["email"])
+            .on_conflict_do_nothing(index_elements=[Profile.id])
+        )
+        transaction = Transaction(
+            user_id=user_id,
+            type=TransactionType.buy,
+            asset_type=AssetType.deposit,
+            date=data.start_date,
+            currency=data.currency,
+        )
+        db.add(transaction)
+        db.flush()
+        deposit = DepositTransaction(
+            transaction_id=transaction.id,
+            value=data.value,
+            annual_rate=data.interest_rate,
+            start_date=data.start_date,
+            maturity_date=data.maturity_date,
+        )
+        db.add(deposit)
+        db.flush()
+        result = operation_from_row((transaction, None, None, None, deposit, None))
+    return result
+
+
 def list_operations(db: Session, user_id: UUID) -> list[Operation]:
     return [operation_from_row(row) for row in reversed(transaction_rows(db, user_id))]
 
@@ -130,6 +169,7 @@ def list_holdings(db: Session, user_id: UUID) -> list[Holding]:
         )
 
     positions: dict[str, Holding] = {}
+    deposit_terms: dict[str, DepositTransaction] = {}
     for row in transaction_rows(db, user_id):
         transaction, cash, stock_trade, stock, deposit, bond = row
         operation = operation_from_row(row)
@@ -152,6 +192,8 @@ def list_holdings(db: Session, user_id: UUID) -> list[Holding]:
         else:
             continue
         key = f"{asset_id}:{transaction.currency.value}"
+        if deposit is not None:
+            deposit_terms[key] = deposit
         if key not in positions:
             positions[key] = Holding(
                 id=key,
@@ -217,7 +259,15 @@ def list_holdings(db: Session, user_id: UUID) -> list[Holding]:
                 position.value = (
                     position.qty * price.price * fx if fx is not None else None
                 )
-        # Term deposit and bond valuations need an interest/market valuation model.
+        elif position.asset_class == "Lokata":
+            deposit = deposit_terms[position.id]
+            elapsed_days = max(
+                0, (min(date.today(), deposit.maturity_date) - deposit.start_date).days
+            )
+            # Simple gross interest using actual elapsed days and a 365-day year.
+            growth = ONE + deposit.annual_rate / 100 * Decimal(elapsed_days) / 365
+            position.value = position.qty * growth * fx if fx is not None else None
+        # Bond valuations still need a market valuation model.
         if position.value is not None and position.cost is not None:
             position.change = position.value - position.cost
             if position.cost > ZERO:

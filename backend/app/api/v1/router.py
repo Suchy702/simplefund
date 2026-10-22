@@ -5,8 +5,18 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.dependencies import get_current_user
-from app.schemas.portfolio import CashOperationCreate, Holding, Operation
-from app.services.portfolio import create_cash_operation, list_holdings, list_operations
+from app.schemas.portfolio import (
+    CashOperationCreate,
+    DepositOperationCreate,
+    Holding,
+    Operation,
+)
+from app.services.portfolio import (
+    create_cash_operation,
+    create_deposit_operation,
+    list_holdings,
+    list_operations,
+)
 
 router = APIRouter()
 
@@ -18,6 +28,15 @@ def add_cash(
     db: Session = Depends(get_db),
 ):
     return create_cash_operation(db, user, data)
+
+
+@router.post("/transactions/deposit", response_model=Operation, status_code=201)
+def add_deposit(
+    data: DepositOperationCreate,
+    user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    return create_deposit_operation(db, user, data)
 
 
 @router.get("/transactions", response_model=list[Operation])

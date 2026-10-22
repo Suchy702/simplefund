@@ -70,3 +70,11 @@ export interface PortfolioPoint {
   date: string
   value: number
 }
+
+export interface DepositOperationInput {
+  value: string
+  currency: Currency
+  interestRate: string
+  startDate: string
+  maturityDate: string
+}

@@ -47,6 +47,4 @@ uv run alembic upgrade head
 
 The Vite development server proxies `/api` to `http://127.0.0.1:8000`. For a deployed frontend, configure the same proxy or set `VITE_API_URL` to the backend's full API base URL, including `/api/v1`. If using a different origin, configure the backend's CORS allowlist too.
 
-Cash deposits and withdrawals are stored in PostgreSQL. The holdings table and operation history use the authenticated API. Each currency has its own cash balance; withdrawals cannot make the balance negative on any operation date. PLN valuations require exchange rates in `exchange_rates`; missing rates display as unavailable. KPI, allocation, and performance charts still use demo data. Term deposit and bond market valuations are unavailable until a valuation model is implemented.
-
 <img width="1693" height="1063" alt="image" src="https://github.com/user-attachments/assets/4d32f036-8212-49de-84d1-ed62cad26833" />
