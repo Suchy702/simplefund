@@ -3,7 +3,7 @@ interface TickerBadgeProps {
   color: string
 }
 
-export function TickerBadge({ ticker, color }: TickerBadgeProps) {
+export const TickerBadge = ({ ticker, color }: TickerBadgeProps) => {
   const initials = ticker.slice(0, 4)
   return (
     <span

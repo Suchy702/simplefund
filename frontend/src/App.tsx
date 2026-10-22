@@ -22,7 +22,7 @@ const queryClient = new QueryClient({
   },
 })
 
-function AppContent() {
+const AppContent = () => {
   const [authPage, setAuthPage] = useState<AuthPage>('login')
   const { data: session, isLoading } = useSession()
   const qc = useQueryClient()
@@ -46,10 +46,10 @@ function AppContent() {
   return <RegisterPage onGoToLogin={() => setAuthPage('login')} />
 }
 
-export default function App() {
-  return (
-    <QueryClientProvider client={queryClient}>
-      <AppContent />
-    </QueryClientProvider>
-  )
-}
+const App = () => (
+  <QueryClientProvider client={queryClient}>
+    <AppContent />
+  </QueryClientProvider>
+)
+
+export default App

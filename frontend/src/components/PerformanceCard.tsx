@@ -20,17 +20,17 @@ interface PerformanceCardProps {
   onRangeChange: (range: RangeKey) => void
 }
 
-export function PerformanceCard({
+export const PerformanceCard = ({
   range,
   onRangeChange,
-}: PerformanceCardProps) {
+}: PerformanceCardProps) => {
   const { data: series, isLoading } = usePortfolioSeries(range)
 
   const headline =
     series && series.length > 0
       ? (() => {
-          const chgAbs = series[series.length - 1] - series[0]
-          const chgPct = (chgAbs / series[0]) * 100
+          const chgAbs = series[series.length - 1].value - series[0].value
+          const chgPct = (chgAbs / series[0].value) * 100
           const positive = chgAbs >= 0
           return { chgAbs, chgPct, positive }
         })()

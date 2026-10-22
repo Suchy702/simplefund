@@ -7,7 +7,7 @@ interface DeltaPillProps {
   className?: string
 }
 
-export function DeltaPill({ value, className }: DeltaPillProps) {
+export const DeltaPill = ({ value, className }: DeltaPillProps) => {
   const positive = value >= 0
   return (
     <Badge

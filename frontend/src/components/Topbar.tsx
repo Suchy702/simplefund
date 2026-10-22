@@ -11,11 +11,9 @@ import {
 import { useSession, useSignOut } from '@/api/auth'
 import { useTheme } from '@/hooks/useTheme'
 
-function getInitials(email: string): string {
-  return email.slice(0, 2).toUpperCase()
-}
+const getInitials = (email: string): string => email.slice(0, 2).toUpperCase()
 
-export function Topbar() {
+export const Topbar = () => {
   const { theme, toggle } = useTheme()
   const { data: session } = useSession()
   const signOut = useSignOut()

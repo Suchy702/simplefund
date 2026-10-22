@@ -12,14 +12,14 @@ interface NestedDonutProps {
   gap?: number
 }
 
-export function NestedDonut({
+export const NestedDonut = ({
   outer,
   inner,
   size = 220,
   outerThickness = 22,
   innerThickness = 16,
   gap = 4,
-}: NestedDonutProps) {
+}: NestedDonutProps) => {
   const rOuter = (size - outerThickness) / 2
   const rInner = (size - 2 * outerThickness - 2 * gap - innerThickness) / 2
   const cOuter = 2 * Math.PI * rOuter

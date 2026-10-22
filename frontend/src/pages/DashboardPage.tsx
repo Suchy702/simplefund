@@ -11,7 +11,7 @@ import { Topbar } from '@/components/Topbar'
 import { usePortfolioKpi } from '@/api/portfolio'
 import type { RangeKey } from '@/types/portfolio'
 
-export default function DashboardPage() {
+const DashboardPage = () => {
   const [range, setRange] = useState<RangeKey>('1R')
   const { data: kpi } = usePortfolioKpi()
 
@@ -28,14 +28,14 @@ export default function DashboardPage() {
 
           <Hero />
 
-          <PerformanceCard range={range} onRangeChange={setRange} />
-
-          <PerformanceStats range={range} />
-
           <div className="mb-4 grid grid-cols-[1fr_320px] gap-4">
             <HoldingsTable />
             <AllocationCard />
           </div>
+
+          <PerformanceCard range={range} onRangeChange={setRange} />
+
+          <PerformanceStats range={range} />
 
           <OperationsTable />
         </div>
@@ -43,3 +43,5 @@ export default function DashboardPage() {
     </div>
   )
 }
+
+export default DashboardPage
