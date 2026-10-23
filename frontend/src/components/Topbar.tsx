@@ -1,4 +1,4 @@
-import { Bell, Download, LogOut, Moon, Sun } from 'lucide-react'
+import { Bell, Download, LogOut, Moon, Shield, Sun } from 'lucide-react'
 
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
@@ -13,7 +13,15 @@ import { useTheme } from '@/hooks/useTheme'
 
 const getInitials = (email: string): string => email.slice(0, 2).toUpperCase()
 
-export const Topbar = () => {
+export const Topbar = ({
+  isAdmin,
+  adminActive = false,
+  onOpenAdmin,
+}: {
+  isAdmin: boolean
+  adminActive?: boolean
+  onOpenAdmin?: () => void
+}) => {
   const { theme, toggle } = useTheme()
   const { data: session } = useSession()
   const signOut = useSignOut()
@@ -34,6 +42,17 @@ export const Topbar = () => {
           <Download size={14} />
           Importuj z XTB
         </Button>
+        {isAdmin && (
+          <Button
+            variant={adminActive ? 'default' : 'outline'}
+            onClick={onOpenAdmin}
+            disabled={adminActive}
+            aria-current={adminActive ? 'page' : undefined}
+          >
+            <Shield size={14} />
+            Panel admina
+          </Button>
+        )}
         <Button
           variant="outline"
           size="icon"

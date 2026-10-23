@@ -9,6 +9,7 @@ dependencies = [
     "pydantic-settings",
     "python-jose[cryptography]",
     "psycopg2-binary>=2.9.12",
+    "yfinance==1.7.0",
 ]
 
 [dependency-groups]

@@ -5,11 +5,13 @@ import {
   useQueryClient,
 } from '@tanstack/react-query'
 
+import AdminPage from '@/pages/AdminPage'
 import DashboardPage from '@/pages/DashboardPage'
 import LoginPage from '@/pages/LoginPage'
 import RegisterPage from '@/pages/RegisterPage'
 import { supabase } from '@/lib/supabase'
 import { useSession } from '@/api/auth'
+import { useProfileRole } from '@/api/admin'
 
 type AuthPage = 'login' | 'register'
 
@@ -24,7 +26,9 @@ const queryClient = new QueryClient({
 
 const AppContent = () => {
   const [authPage, setAuthPage] = useState<AuthPage>('login')
+  const [page, setPage] = useState<'dashboard' | 'admin'>('dashboard')
   const { data: session, isLoading } = useSession()
+  const { data: role } = useProfileRole()
   const qc = useQueryClient()
 
   useEffect(() => {
@@ -32,14 +36,29 @@ const AppContent = () => {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       qc.setQueryData(['auth', 'session'], session)
-      if (!session) qc.removeQueries({ queryKey: ['portfolio'] })
+      if (!session) {
+        setPage('dashboard')
+        qc.removeQueries({ queryKey: ['portfolio'] })
+        qc.removeQueries({ queryKey: ['admin'] })
+        qc.removeQueries({ queryKey: ['auth', 'role'] })
+      }
     })
     return () => subscription.unsubscribe()
   }, [qc])
 
   if (isLoading) return null
 
-  if (session) return <DashboardPage />
+  if (session) {
+    if (page === 'admin' && role === 'admin') {
+      return <AdminPage onBack={() => setPage('dashboard')} />
+    }
+    return (
+      <DashboardPage
+        isAdmin={role === 'admin'}
+        onOpenAdmin={() => setPage('admin')}
+      />
+    )
+  }
 
   if (authPage === 'login') {
     return <LoginPage onGoToRegister={() => setAuthPage('register')} />

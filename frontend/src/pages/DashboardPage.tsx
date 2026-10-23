@@ -11,13 +11,19 @@ import { Topbar } from '@/components/Topbar'
 import { usePortfolioKpi } from '@/api/portfolio'
 import type { RangeKey } from '@/types/portfolio'
 
-const DashboardPage = () => {
+const DashboardPage = ({
+  isAdmin,
+  onOpenAdmin,
+}: {
+  isAdmin: boolean
+  onOpenAdmin: () => void
+}) => {
   const [range, setRange] = useState<RangeKey>('1R')
   const { data: kpi } = usePortfolioKpi()
 
   return (
     <div className="flex h-full flex-col overflow-hidden bg-background text-foreground">
-      <Topbar />
+      <Topbar isAdmin={isAdmin} onOpenAdmin={onOpenAdmin} />
 
       <main className="flex-1 overflow-y-auto px-8 pb-12 pt-8">
         <div className="mx-auto w-full max-w-[1280px]">
