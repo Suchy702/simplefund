@@ -83,3 +83,15 @@ class Holding(ApiModel):
     change: Amount | None
     change_pct: Amount | None
     color: str
+
+
+class AllocationSegment(ApiModel):
+    name: str
+    pct: Amount
+    color: str
+
+
+class PortfolioAllocation(ApiModel):
+    outer: list[AllocationSegment]
+    inner: list[AllocationSegment]
+    unvalued_count: int

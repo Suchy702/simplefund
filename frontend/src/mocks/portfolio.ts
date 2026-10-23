@@ -6,12 +6,7 @@ import {
   subMonths,
 } from 'date-fns'
 import { pl } from 'date-fns/locale'
-import type {
-  Allocation,
-  PortfolioKpi,
-  RangeKey,
-  PortfolioPoint,
-} from '@/types/portfolio'
+import type { PortfolioKpi, RangeKey, PortfolioPoint } from '@/types/portfolio'
 
 export const MOCK_AS_OF_DATE = '2026-04-25'
 
@@ -24,12 +19,6 @@ export const MOCK_KPI: PortfolioKpi = {
   syncedMinutesAgo: 8,
   asOfDate: format(parseISO(MOCK_AS_OF_DATE), 'd MMM yyyy', { locale: pl }),
 }
-
-export const MOCK_ALLOCATION: Allocation[] = [
-  { name: 'Akcje', pct: 74.7, color: 'var(--cat-1)' },
-  { name: 'Lokata', pct: 17.3, color: 'var(--cat-2)' },
-  { name: 'Depozyt', pct: 8.0, color: 'var(--cat-3)' },
-]
 
 export function generateSeries(rangeKey: RangeKey): PortfolioPoint[] {
   const target = MOCK_KPI.totalValue

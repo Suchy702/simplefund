@@ -1,40 +1,28 @@
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { NestedDonut } from '@/components/NestedDonut'
-import { useAllocation, useHoldings } from '@/api/portfolio'
-import type { AssetClass } from '@/types/portfolio'
-
-const CLASS_ORDER: Record<AssetClass, number> = {
-  Akcje: 0,
-  Lokata: 1,
-  Depozyt: 2,
-  Gotówka: 3,
-  Obligacje: 4,
-}
+import { useAllocation } from '@/api/portfolio'
+import { Button } from '@/components/ui/button'
 
 export const AllocationCard = () => {
-  const { data: allocation, isLoading: allocLoading } = useAllocation()
-  const { data: holdings, isLoading: holdingsLoading } = useHoldings()
-
-  const innerSegments = (() => {
-    if (!holdings) return []
-    const valued = holdings.filter(
-      (h): h is typeof h & { value: number } => h.value !== null && h.value > 0
-    )
-    const total = valued.reduce((s, h) => s + h.value, 0)
-    if (total === 0) return []
-    const sorted = [...valued].sort(
-      (a, b) =>
-        (CLASS_ORDER[a.class] ?? 9) - (CLASS_ORDER[b.class] ?? 9) ||
-        b.value - a.value
-    )
-    return sorted.map((h) => ({ pct: (h.value / total) * 100, color: h.color }))
-  })()
+  const { data: allocation, isLoading, isError, refetch } = useAllocation()
 
   return (
     <Card>
       <CardContent>
-        {allocLoading || holdingsLoading || !allocation ? (
+        {isError ? (
+          <div role="alert" className="text-sm">
+            Nie udało się pobrać struktury portfela.
+            <Button
+              variant="outline"
+              size="sm"
+              className="mt-3"
+              onClick={() => refetch()}
+            >
+              Spróbuj ponownie
+            </Button>
+          </div>
+        ) : isLoading || !allocation ? (
           <div className="flex flex-col items-center gap-5">
             <Skeleton className="h-60 w-60 rounded-full" />
             <div className="w-full space-y-3">
@@ -45,21 +33,33 @@ export const AllocationCard = () => {
           </div>
         ) : (
           <div className="flex flex-col items-center gap-5">
-            <NestedDonut
-              outer={allocation.map((a) => ({ pct: a.pct, color: a.color }))}
-              inner={innerSegments}
-              size={240}
-              outerThickness={20}
-              innerThickness={14}
-              gap={6}
-            />
+            {allocation.unvaluedCount > 0 && (
+              <p role="status" className="text-sm text-ink-3">
+                Udziały dotyczą wycenionej części portfela. Pozycje bez wyceny:{' '}
+                {allocation.unvaluedCount}.
+              </p>
+            )}
+            {allocation.outer.length === 0 ? (
+              <p className="py-10 text-center text-sm text-ink-3">
+                Brak wycenionych aktywów do pokazania.
+              </p>
+            ) : (
+              <NestedDonut
+                outer={allocation.outer}
+                inner={allocation.inner}
+                size={240}
+                outerThickness={20}
+                innerThickness={14}
+                gap={6}
+              />
+            )}
             <div className="flex w-full flex-col gap-3.5 border-t border-border pt-4">
               <div>
                 <div className="mb-2 text-tiny font-medium uppercase tracking-wider2 text-ink-3">
                   Klasa aktywów
                 </div>
                 <div className="flex flex-col gap-3">
-                  {allocation.map((a) => (
+                  {allocation.outer.map((a) => (
                     <div key={a.name} className="flex items-center gap-2.5">
                       <span
                         className="h-2.5 w-2.5 shrink-0 rounded-[3px]"

@@ -11,7 +11,7 @@ import type {
   PortfolioPoint,
   RangeKey,
 } from '@/types/portfolio'
-import { MOCK_ALLOCATION, MOCK_KPI, generateSeries } from '@/mocks/portfolio'
+import { MOCK_KPI, generateSeries } from '@/mocks/portfolio'
 
 const SIMULATED_DELAY_MS = 200
 
@@ -19,7 +19,6 @@ const delay = <T>(value: T, ms: number = SIMULATED_DELAY_MS): Promise<T> =>
   new Promise((resolve) => setTimeout(() => resolve(value), ms))
 
 const fetchKpi = (): Promise<PortfolioKpi> => delay(MOCK_KPI)
-const fetchAllocation = (): Promise<Allocation[]> => delay(MOCK_ALLOCATION)
 const fetchSeries = (range: RangeKey): Promise<PortfolioPoint[]> =>
   delay(generateSeries(range))
 
@@ -37,8 +36,16 @@ export const useHoldings = () => {
   })
 }
 
-export const useAllocation = () =>
-  useQuery({ queryKey: ['portfolio', 'allocation'], queryFn: fetchAllocation })
+export const useAllocation = () => {
+  const { data: session } = useSession()
+  const userId = session?.user.id
+  return useQuery({
+    queryKey: ['portfolio', userId, 'allocation'],
+    queryFn: ({ signal }) =>
+      apiRequest<Allocation>('/portfolio/allocation', userId!, { signal }),
+    enabled: Boolean(userId),
+  })
+}
 
 export const useOperations = () => {
   const { data: session } = useSession()

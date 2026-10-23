@@ -43,10 +43,16 @@ export interface Operation {
   date: string
 }
 
-export interface Allocation {
+export interface AllocationSegment {
   name: string
   pct: number
   color: string
+}
+
+export interface Allocation {
+  outer: AllocationSegment[]
+  inner: AllocationSegment[]
+  unvaluedCount: number
 }
 
 export interface PortfolioKpi {

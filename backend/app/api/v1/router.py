@@ -10,15 +10,25 @@ from app.schemas.portfolio import (
     DepositOperationCreate,
     Holding,
     Operation,
+    PortfolioAllocation,
 )
 from app.services.portfolio import (
     create_cash_operation,
     create_deposit_operation,
     list_holdings,
     list_operations,
+    portfolio_allocation,
 )
 
 router = APIRouter()
+
+
+@router.get("/portfolio/allocation", response_model=PortfolioAllocation)
+def allocation(
+    user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    return portfolio_allocation(db, UUID(user["sub"]))
 
 
 @router.post("/transactions/cash", response_model=Operation, status_code=201)

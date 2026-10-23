@@ -12,14 +12,58 @@ from app.models import CashTransaction, DepositTransaction, Profile, Transaction
 from app.models.enums import AssetType, Currency, TransactionType
 from app.repositories.portfolio import exchange_rates, stock_prices, transaction_rows
 from app.schemas.portfolio import (
+    AllocationSegment,
     CashOperationCreate,
     DepositOperationCreate,
     Holding,
     Operation,
+    PortfolioAllocation,
 )
 
 ZERO = Decimal(0)
 ONE = Decimal(1)
+
+ALLOCATION_CLASSES = {
+    "Akcje": "var(--cat-1)",
+    "Lokata": "var(--cat-2)",
+    "Depozyt": "oklch(65% 0.13 30)",
+    "Gotówka": "var(--cat-3)",
+    "Obligacje": "var(--cat-4)",
+}
+
+
+def portfolio_allocation(db: Session, user_id: UUID) -> PortfolioAllocation:
+    holdings = list_holdings(db, user_id)
+    grouped = defaultdict(list)
+    for holding in holdings:
+        if holding.value is not None and holding.value > ZERO:
+            grouped[holding.asset_class].append(holding)
+    total = sum((h.value for group in grouped.values() for h in group), start=ZERO)
+    outer, inner = [], []
+    class_order = {name: index for index, name in enumerate(ALLOCATION_CLASSES)}
+    for name in sorted(grouped, key=lambda name: (class_order.get(name, 99), name)):
+        group = sorted(grouped[name], key=lambda h: (-h.value, h.id))
+        color = ALLOCATION_CLASSES.get(name, "var(--cat-4)")
+        outer.append(
+            AllocationSegment(
+                name=name,
+                pct=sum((h.value for h in group), start=ZERO) / total * 100,
+                color=color,
+            )
+        )
+        for index, holding in enumerate(group):
+            inner.append(
+                AllocationSegment(
+                    name=holding.name,
+                    pct=holding.value / total * 100,
+                    color=f"color-mix(in oklch, {color}, white {index % 5 * 12}%)",
+                )
+            )
+    return PortfolioAllocation(
+        outer=outer,
+        inner=inner,
+        unvalued_count=sum(h.value is None for h in holdings),
+    )
 
 
 def operation_from_row(row) -> Operation:
