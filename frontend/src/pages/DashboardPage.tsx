@@ -9,6 +9,7 @@ import { PerformanceCard } from '@/components/PerformanceCard'
 import { PerformanceStats } from '@/components/PerformanceStats'
 import { Topbar } from '@/components/Topbar'
 import { usePortfolioKpi } from '@/api/portfolio'
+import { formatSeriesDate } from '@/lib/performance'
 import type { RangeKey } from '@/types/portfolio'
 
 const DashboardPage = ({
@@ -28,8 +29,8 @@ const DashboardPage = ({
       <main className="flex-1 overflow-y-auto px-8 pb-12 pt-8">
         <div className="mx-auto w-full max-w-[1280px]">
           <PageHead
-            asOfDate={kpi?.asOfDate ?? ''}
-            syncedMinutesAgo={kpi?.syncedMinutesAgo ?? 0}
+            asOfDate={kpi?.asOfDate ? formatSeriesDate(kpi.asOfDate) : ''}
+            syncedMinutesAgo={kpi?.syncedMinutesAgo ?? null}
           />
 
           <Hero />

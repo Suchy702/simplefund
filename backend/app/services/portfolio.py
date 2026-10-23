@@ -197,25 +197,34 @@ def list_operations(db: Session, user_id: UUID) -> list[Operation]:
     return [operation_from_row(row) for row in reversed(transaction_rows(db, user_id))]
 
 
+def exchange_rate_on(rates, currency: Currency, on: date) -> Decimal | None:
+    if currency == Currency.PLN:
+        return ONE
+    return next(
+        (
+            r.rate
+            for r in reversed(rates)
+            if r.currency == currency and r.rate_date <= on
+        ),
+        None,
+    )
+
+
 def list_holdings(db: Session, user_id: UUID) -> list[Holding]:
-    rates = exchange_rates(db)
+    market, manual = stock_prices(db, user_id)
+    return holdings_from_rows(
+        transaction_rows(db, user_id), exchange_rates(db), market, manual, date.today()
+    )
 
-    def rate(currency: Currency, on: date) -> Decimal | None:
-        if currency == Currency.PLN:
-            return ONE
-        return next(
-            (
-                r.rate
-                for r in reversed(rates)
-                if r.currency == currency and r.rate_date <= on
-            ),
-            None,
-        )
 
+def holdings_from_rows(rows, rates, market, manual, on: date) -> list[Holding]:
+    """Value a portfolio snapshot using only observations available on its date."""
     positions: dict[str, Holding] = {}
     deposit_terms: dict[str, DepositTransaction] = {}
-    for row in transaction_rows(db, user_id):
+    for row in rows:
         transaction, cash, stock_trade, stock, deposit, bond = row
+        if transaction.date > on:
+            continue
         operation = operation_from_row(row)
         if cash is not None:
             asset_id, ticker, quantity = "cash", transaction.currency.value, cash.value
@@ -254,7 +263,7 @@ def list_holdings(db: Session, user_id: UUID) -> list[Holding]:
                 color="var(--cat-3)",
             )
         position = positions[key]
-        fx = rate(transaction.currency, transaction.date)
+        fx = exchange_rate_on(rates, transaction.currency, transaction.date)
         cost = (
             operation.value * fx
             if operation.value is not None and fx is not None
@@ -282,9 +291,10 @@ def list_holdings(db: Session, user_id: UUID) -> list[Holding]:
         if position.qty == ZERO:
             position.cost = ZERO
 
-    market, manual = stock_prices(db, user_id)
     prices = {}
     for price in [*market, *manual]:
+        if price.price_date > on:
+            continue
         existing = prices.get(price.stock_id)
         if existing is None or price.price_date >= existing.price_date:
             prices[price.stock_id] = price
@@ -292,7 +302,7 @@ def list_holdings(db: Session, user_id: UUID) -> list[Holding]:
     for position in positions.values():
         if position.qty == ZERO:
             continue
-        fx = rate(position.currency, date.today())
+        fx = exchange_rate_on(rates, position.currency, on)
         if position.asset_class == "Gotówka":
             position.value = position.qty * fx if fx is not None else None
         elif position.asset_class == "Akcje":
@@ -306,7 +316,7 @@ def list_holdings(db: Session, user_id: UUID) -> list[Holding]:
         elif position.asset_class == "Lokata":
             deposit = deposit_terms[position.id]
             elapsed_days = max(
-                0, (min(date.today(), deposit.maturity_date) - deposit.start_date).days
+                0, (min(on, deposit.maturity_date) - deposit.start_date).days
             )
             # Simple gross interest using actual elapsed days and a 365-day year.
             growth = ONE + deposit.annual_rate / 100 * Decimal(elapsed_days) / 365

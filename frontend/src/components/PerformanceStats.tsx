@@ -1,9 +1,9 @@
 import { Card } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
-import { usePortfolioSeries } from '@/api/portfolio'
+import { usePortfolioStatistics } from '@/api/portfolio'
 import { cn } from '@/lib/utils'
 import { fmtMoney, fmtPct } from '@/lib/formatters'
-import { calculatePerformanceStats, formatSeriesDate } from '@/lib/performance'
+import { formatSeriesDate } from '@/lib/performance'
 import type { RangeKey } from '@/types/portfolio'
 
 interface PerformanceStatsProps {
@@ -35,11 +35,10 @@ const StatCell = ({ label, value, sub, toneClass }: CellProps) => (
 )
 
 export const PerformanceStats = ({ range }: PerformanceStatsProps) => {
-  const { data: series, isLoading } = usePortfolioSeries(range)
+  const { data, isLoading } = usePortfolioStatistics(range)
+  const stats = data?.performance
 
-  const stats = series ? calculatePerformanceStats(series) : null
-
-  if (isLoading || !stats) {
+  if (isLoading) {
     return (
       <Card className="mb-4 px-8 py-6">
         <div className="grid grid-cols-4 gap-8">
@@ -51,6 +50,14 @@ export const PerformanceStats = ({ range }: PerformanceStatsProps) => {
             </div>
           ))}
         </div>
+      </Card>
+    )
+  }
+
+  if (!stats) {
+    return (
+      <Card className="mb-4 px-8 py-6 text-ink-3">
+        Brak danych do obliczenia statystyk.
       </Card>
     )
   }
@@ -72,7 +79,9 @@ export const PerformanceStats = ({ range }: PerformanceStatsProps) => {
         />
         <StatCell
           label="Odch. standardowe"
-          value={`${stdPct.toFixed(1).replace('.', ',')}%`}
+          value={
+            stdPct === null ? '—' : `${stdPct.toFixed(1).replace('.', ',')}%`
+          }
           sub="annualizowane"
         />
         <StatCell

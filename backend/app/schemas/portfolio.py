@@ -95,3 +95,57 @@ class PortfolioAllocation(ApiModel):
     outer: list[AllocationSegment]
     inner: list[AllocationSegment]
     unvalued_count: int
+
+
+PortfolioRange = Literal["1M", "3M", "6M", "1R", "MAX"]
+
+
+class PortfolioKpi(ApiModel):
+    as_of_date: Date
+    currency: Literal["PLN"] = "PLN"
+    total_contrib: Amount | None = Field(
+        description="Net purchases and cash deposits less sales and withdrawals, "
+        "converted to PLN at historical FX rates. Trades do not debit cash."
+    )
+    total_value: Amount | None
+    balance: Amount | None
+    roi: Amount | None = Field(description="Profit / positive net contributions, in %.")
+    cagr: Amount | None = Field(
+        description="Annualized geometrically linked daily returns, adjusted for "
+        "end-of-day flows, using a 365-day year. Null for incomplete history."
+    )
+    unvalued_count: int
+
+
+class PortfolioPoint(ApiModel):
+    date: Date
+    value: Amount | None
+
+
+class PerformanceStatistics(ApiModel):
+    peak: Amount
+    trough: Amount
+    peak_date: Date
+    trough_date: Date
+    std_pct: Amount | None = Field(
+        description="Sample standard deviation of flow-adjusted daily returns, "
+        "annualized by sqrt(365), in %. Requires at least two returns."
+    )
+    max_dd: Amount = Field(
+        description="Largest peak-to-trough decline in portfolio value, as a "
+        "nonpositive fraction. Includes the effect of deposits and withdrawals."
+    )
+    max_dd_pln: Amount = Field(
+        description="PLN decline belonging to maxDd and its own preceding peak."
+    )
+    change: Amount = Field(description="Last value minus first value in the range.")
+    change_pct: Amount | None
+
+
+class PortfolioStatistics(ApiModel):
+    range: PortfolioRange
+    kpi: PortfolioKpi
+    series: list[PortfolioPoint]
+    performance: PerformanceStatistics | None = Field(
+        description="Null for empty history or any missing valuation in this range."
+    )

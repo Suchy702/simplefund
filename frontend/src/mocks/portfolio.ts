@@ -10,7 +10,7 @@ import type { PortfolioKpi, RangeKey, PortfolioPoint } from '@/types/portfolio'
 
 export const MOCK_AS_OF_DATE = '2026-04-25'
 
-export const MOCK_KPI: PortfolioKpi = {
+export const MOCK_KPI = {
   totalContrib: 127483.49,
   totalValue: 124960.96,
   balance: -2522.54,
@@ -18,7 +18,7 @@ export const MOCK_KPI: PortfolioKpi = {
   cagr: -1.36,
   syncedMinutesAgo: 8,
   asOfDate: format(parseISO(MOCK_AS_OF_DATE), 'd MMM yyyy', { locale: pl }),
-}
+} satisfies PortfolioKpi
 
 export function generateSeries(rangeKey: RangeKey): PortfolioPoint[] {
   const target = MOCK_KPI.totalValue

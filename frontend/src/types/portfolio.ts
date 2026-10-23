@@ -56,13 +56,33 @@ export interface Allocation {
 }
 
 export interface PortfolioKpi {
-  totalContrib: number
-  totalValue: number
-  balance: number
-  roi: number
-  cagr: number
-  syncedMinutesAgo: number
+  totalContrib: number | null
+  totalValue: number | null
+  balance: number | null
+  roi: number | null
+  cagr: number | null
+  unvaluedCount?: number
+  syncedMinutesAgo?: number | null
   asOfDate: string
+}
+
+export interface PerformanceStatistics {
+  peak: number
+  trough: number
+  peakDate: string
+  troughDate: string
+  stdPct: number | null
+  maxDd: number
+  maxDdPln: number
+  change: number
+  changePct: number | null
+}
+
+export interface PortfolioStatistics {
+  range: RangeKey
+  kpi: PortfolioKpi
+  series: { date: string; value: number | null }[]
+  performance: PerformanceStatistics | null
 }
 
 export interface CashOperationInput {

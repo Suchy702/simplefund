@@ -38,7 +38,7 @@ const HeroStat = ({
 export const Hero = () => {
   const { data, isLoading } = usePortfolioKpi()
 
-  if (isLoading || !data) {
+  if (isLoading) {
     return (
       <Card className="mb-4 px-9 py-7">
         <div className="grid grid-cols-[1.6fr_1fr_1fr_0.9fr_0.9fr] items-start gap-10">
@@ -54,8 +54,16 @@ export const Hero = () => {
     )
   }
 
+  if (!data) {
+    return (
+      <Card className="mb-4 px-9 py-7 text-ink-3">
+        Nie udało się pobrać statystyk portfela.
+      </Card>
+    )
+  }
+
   const { totalContrib, totalValue, balance, roi, cagr } = data
-  const positive = balance >= 0
+  const positive = balance !== null && balance >= 0
 
   return (
     <Card className="mb-4 px-9 py-7">
@@ -63,36 +71,49 @@ export const Hero = () => {
         <div>
           <HeroLabel>Wartość portfela</HeroLabel>
           <div className="font-mono tabular text-42 font-semibold tracking-tightest text-foreground">
-            {fmtNumber(totalValue)}
+            {totalValue === null ? '—' : fmtNumber(totalValue)}
             <span className="ml-1.5 text-lg font-medium tracking-normal text-ink-3">
               PLN
             </span>
           </div>
+          {!!data.unvaluedCount && (
+            <div className="mt-2 text-xs text-ink-3">
+              Brak wyceny części aktywów.
+            </div>
+          )}
         </div>
 
         <HeroStat
           label="Bilans"
-          value={fmtMoney(balance, 'PLN', { sign: true })}
+          value={
+            balance === null ? '—' : fmtMoney(balance, 'PLN', { sign: true })
+          }
           sub="zysk / strata łącznie"
-          toneClass={positive ? 'text-pos' : 'text-neg'}
+          toneClass={
+            balance === null ? undefined : positive ? 'text-pos' : 'text-neg'
+          }
         />
 
         <HeroStat
           label="Wkład własny"
-          value={fmtNumber(totalContrib)}
-          sub="PLN · kapitał wpłacony"
+          value={totalContrib === null ? '—' : fmtNumber(totalContrib)}
+          sub="PLN · wkład netto"
         />
         <HeroStat
           label="ROI"
-          value={fmtPct(roi, { sign: true })}
+          value={roi === null ? '—' : fmtPct(roi, { sign: true })}
           sub="całkowity zwrot"
-          toneClass={roi >= 0 ? 'text-pos' : 'text-neg'}
+          toneClass={
+            roi === null ? undefined : roi >= 0 ? 'text-pos' : 'text-neg'
+          }
         />
         <HeroStat
           label="CAGR"
-          value={fmtPct(cagr, { sign: true })}
-          sub="roczny zwrot składany"
-          toneClass={cagr >= 0 ? 'text-pos' : 'text-neg'}
+          value={cagr === null ? '—' : fmtPct(cagr, { sign: true })}
+          sub="roczny zwrot · korekta przepływów"
+          toneClass={
+            cagr === null ? undefined : cagr >= 0 ? 'text-pos' : 'text-neg'
+          }
         />
       </div>
     </Card>

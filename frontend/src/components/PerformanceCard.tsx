@@ -8,7 +8,7 @@ import {
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { PerformanceChart } from '@/components/PerformanceChart'
 import { Skeleton } from '@/components/ui/skeleton'
-import { usePortfolioSeries } from '@/api/portfolio'
+import { usePortfolioStatistics } from '@/api/portfolio'
 import { cn } from '@/lib/utils'
 import { fmtMoney, fmtPct } from '@/lib/formatters'
 import type { RangeKey } from '@/types/portfolio'
@@ -24,17 +24,8 @@ export const PerformanceCard = ({
   range,
   onRangeChange,
 }: PerformanceCardProps) => {
-  const { data: series, isLoading } = usePortfolioSeries(range)
-
-  const headline =
-    series && series.length > 0
-      ? (() => {
-          const chgAbs = series[series.length - 1].value - series[0].value
-          const chgPct = (chgAbs / series[0].value) * 100
-          const positive = chgAbs >= 0
-          return { chgAbs, chgPct, positive }
-        })()
-      : null
+  const { data, isLoading } = usePortfolioStatistics(range)
+  const headline = data?.performance
 
   return (
     <Card className="mb-4">
@@ -54,18 +45,25 @@ export const PerformanceCard = ({
         </Tabs>
       </CardHeader>
       <CardContent>
-        {isLoading || !headline ? (
+        {isLoading ? (
           <Skeleton className="mb-4 h-7 w-60" />
-        ) : (
+        ) : headline ? (
           <div
             className={cn(
               'mb-4 mt-1 text-26 font-medium tabular leading-tight',
-              headline.positive ? 'text-pos' : 'text-neg'
+              headline.change >= 0 ? 'text-pos' : 'text-neg'
             )}
           >
-            {fmtMoney(headline.chgAbs, 'PLN', { sign: true })} (
-            {fmtPct(headline.chgPct, { sign: true })})
+            {fmtMoney(headline.change, 'PLN', { sign: true })} (
+            {headline.changePct === null
+              ? '—'
+              : fmtPct(headline.changePct, { sign: true })}
+            )
           </div>
+        ) : (
+          <p className="mb-4 text-ink-3">
+            Brak pełnej historii wycen dla tego okresu.
+          </p>
         )}
         <PerformanceChart range={range} height={300} />
       </CardContent>

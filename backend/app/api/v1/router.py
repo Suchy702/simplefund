@@ -11,6 +11,8 @@ from app.schemas.portfolio import (
     Holding,
     Operation,
     PortfolioAllocation,
+    PortfolioRange,
+    PortfolioStatistics,
 )
 from app.services.portfolio import (
     create_cash_operation,
@@ -19,8 +21,18 @@ from app.services.portfolio import (
     list_operations,
     portfolio_allocation,
 )
+from app.services.portfolio_statistics import portfolio_statistics
 
 router = APIRouter()
+
+
+@router.get("/portfolio/statistics", response_model=PortfolioStatistics)
+def statistics(
+    range: PortfolioRange = "1R",
+    user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    return portfolio_statistics(db, UUID(user["sub"]), range)
 
 
 @router.get("/portfolio/allocation", response_model=PortfolioAllocation)

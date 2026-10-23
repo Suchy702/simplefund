@@ -15,7 +15,7 @@ import {
 
 interface PageHeadProps {
   asOfDate: string
-  syncedMinutesAgo: number
+  syncedMinutesAgo: number | null
 }
 
 export const PageHead = ({ asOfDate, syncedMinutesAgo }: PageHeadProps) => {
@@ -30,8 +30,9 @@ export const PageHead = ({ asOfDate, syncedMinutesAgo }: PageHeadProps) => {
             Twój portfel
           </h1>
           <div className="text-13 text-ink-3">
-            Stan na dziś, {asOfDate} · ostatnia synchronizacja{' '}
-            {syncedMinutesAgo} min temu
+            {asOfDate ? `Stan na ${asOfDate}` : 'Stan portfela'}
+            {syncedMinutesAgo !== null &&
+              ` · ostatnia synchronizacja ${syncedMinutesAgo} min temu`}
           </div>
         </div>
         <DropdownMenu>

@@ -13,7 +13,7 @@ const PAD_TOP = 12
 const PAD_BOTTOM = 30
 
 const smoothPath = (points: { x: number; y: number }[]): string => {
-  if (points.length < 2) return ''
+  if (points.length === 0) return ''
   let d = `M ${points[0].x.toFixed(2)} ${points[0].y.toFixed(2)}`
   for (let i = 0; i < points.length - 1; i++) {
     const p0 = points[i - 1] || points[i]
@@ -39,7 +39,7 @@ export const PerformanceChart = ({
   range,
   height = 300,
 }: PerformanceChartProps) => {
-  const { data, isLoading } = usePortfolioSeries(range)
+  const { data, isLoading, change } = usePortfolioSeries(range)
   const wrapRef = useRef<HTMLDivElement>(null)
   const width = useElementWidth(wrapRef, 800)
   const [hover, setHover] = useState<{
@@ -80,7 +80,7 @@ export const PerformanceChart = ({
         }
       : null
 
-  if (isLoading || !data || !computed) {
+  if (isLoading) {
     return (
       <div ref={wrapRef} style={{ height }} className="w-full">
         <Skeleton className="h-full w-full" />
@@ -88,8 +88,20 @@ export const PerformanceChart = ({
     )
   }
 
-  const trend = data[data.length - 1].value - data[0].value
-  const lineColor = trend >= 0 ? 'var(--pos)' : 'var(--neg)'
+  if (!data || !computed) {
+    return (
+      <div
+        ref={wrapRef}
+        style={{ height }}
+        className="flex items-center justify-center text-ink-3"
+      >
+        Brak pełnej historii wycen.
+      </div>
+    )
+  }
+
+  const lineColor =
+    change !== undefined && change < 0 ? 'var(--neg)' : 'var(--pos)'
   const labelCount = Math.min(5, data.length)
   const xLabels = Array.from({ length: labelCount }, (_, index) => {
     const pointIndex = Math.round(
@@ -174,6 +186,14 @@ export const PerformanceChart = ({
           strokeLinejoin="round"
           strokeLinecap="round"
         />
+        {data.length === 1 && (
+          <circle
+            cx={computed.x(0)}
+            cy={computed.y(data[0].value)}
+            r="3"
+            fill={lineColor}
+          />
+        )}
 
         {activeHover && (
           <>

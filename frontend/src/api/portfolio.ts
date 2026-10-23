@@ -7,23 +7,30 @@ import type {
   DepositOperationInput,
   Holding,
   Operation,
-  PortfolioKpi,
   PortfolioPoint,
+  PortfolioStatistics,
   RangeKey,
 } from '@/types/portfolio'
-import { MOCK_KPI, generateSeries } from '@/mocks/portfolio'
 
-const SIMULATED_DELAY_MS = 200
+export const usePortfolioStatistics = (range: RangeKey) => {
+  const { data: session } = useSession()
+  const userId = session?.user.id
+  return useQuery({
+    queryKey: ['portfolio', userId, 'statistics', range],
+    queryFn: ({ signal }) =>
+      apiRequest<PortfolioStatistics>(
+        `/portfolio/statistics?range=${range}`,
+        userId!,
+        { signal }
+      ),
+    enabled: Boolean(userId),
+  })
+}
 
-const delay = <T>(value: T, ms: number = SIMULATED_DELAY_MS): Promise<T> =>
-  new Promise((resolve) => setTimeout(() => resolve(value), ms))
-
-const fetchKpi = (): Promise<PortfolioKpi> => delay(MOCK_KPI)
-const fetchSeries = (range: RangeKey): Promise<PortfolioPoint[]> =>
-  delay(generateSeries(range))
-
-export const usePortfolioKpi = () =>
-  useQuery({ queryKey: ['portfolio', 'kpi'], queryFn: fetchKpi })
+export const usePortfolioKpi = () => {
+  const query = usePortfolioStatistics('1R')
+  return { ...query, data: query.data?.kpi }
+}
 
 export const useHoldings = () => {
   const { data: session } = useSession()
@@ -92,8 +99,14 @@ export const useAddDepositOperation = () => {
   })
 }
 
-export const usePortfolioSeries = (range: RangeKey) =>
-  useQuery({
-    queryKey: ['portfolio', 'series', range],
-    queryFn: () => fetchSeries(range),
-  })
+export const usePortfolioSeries = (range: RangeKey) => {
+  const query = usePortfolioStatistics(range)
+  const series = query.data?.series
+  // Do not connect chart points across dates with unavailable valuations.
+  const data: PortfolioPoint[] | undefined = series
+    ? series.every((point): point is PortfolioPoint => point.value !== null)
+      ? series
+      : []
+    : undefined
+  return { ...query, data, change: query.data?.performance?.change }
+}
