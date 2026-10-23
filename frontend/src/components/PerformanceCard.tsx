@@ -8,7 +8,7 @@ import {
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { PerformanceChart } from '@/components/PerformanceChart'
 import { Skeleton } from '@/components/ui/skeleton'
-import { usePortfolioStatistics } from '@/api/portfolio'
+import { usePortfolioPerformance } from '@/api/portfolio'
 import { cn } from '@/lib/utils'
 import { fmtMoney, fmtPct } from '@/lib/formatters'
 import type { RangeKey } from '@/types/portfolio'
@@ -24,7 +24,7 @@ export const PerformanceCard = ({
   range,
   onRangeChange,
 }: PerformanceCardProps) => {
-  const { data, isLoading } = usePortfolioStatistics(range)
+  const { data, isLoading } = usePortfolioPerformance(range)
   const headline = data?.performance
 
   return (

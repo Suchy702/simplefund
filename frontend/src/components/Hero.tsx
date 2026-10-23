@@ -36,9 +36,9 @@ const HeroStat = ({
 )
 
 export const Hero = () => {
-  const { data, isLoading } = usePortfolioKpi()
+  const { data, isFetching } = usePortfolioKpi()
 
-  if (isLoading) {
+  if (isFetching) {
     return (
       <Card className="mb-4 px-9 py-7">
         <div className="grid grid-cols-[1.6fr_1fr_1fr_0.9fr_0.9fr] items-start gap-10">
@@ -62,7 +62,7 @@ export const Hero = () => {
     )
   }
 
-  const { totalContrib, totalValue, balance, roi, cagr } = data
+  const { totalContrib, totalValue, balance, roi, xirr } = data
   const positive = balance !== null && balance >= 0
 
   return (
@@ -108,11 +108,11 @@ export const Hero = () => {
           }
         />
         <HeroStat
-          label="CAGR"
-          value={cagr === null ? '—' : fmtPct(cagr, { sign: true })}
-          sub="roczny zwrot · korekta przepływów"
+          label="XIRR"
+          value={xirr === null ? '—' : fmtPct(xirr, { sign: true })}
+          sub="roczny wzrost"
           toneClass={
-            cagr === null ? undefined : cagr >= 0 ? 'text-pos' : 'text-neg'
+            xirr === null ? undefined : xirr >= 0 ? 'text-pos' : 'text-neg'
           }
         />
       </div>

@@ -6,7 +6,12 @@ import {
   subMonths,
 } from 'date-fns'
 import { pl } from 'date-fns/locale'
-import type { PortfolioKpi, RangeKey, PortfolioPoint } from '@/types/portfolio'
+import type {
+  PortfolioKpi,
+  RangeKey,
+  PortfolioPoint,
+  PerformanceStatistics,
+} from '@/types/portfolio'
 
 export const MOCK_AS_OF_DATE = '2026-04-25'
 
@@ -15,7 +20,7 @@ export const MOCK_KPI = {
   totalValue: 124960.96,
   balance: -2522.54,
   roi: -1.98,
-  cagr: -1.36,
+  xirr: -1.36,
   syncedMinutesAgo: 8,
   asOfDate: format(parseISO(MOCK_AS_OF_DATE), 'd MMM yyyy', { locale: pl }),
 } satisfies PortfolioKpi
@@ -71,3 +76,62 @@ export function generateSeries(rangeKey: RangeKey): PortfolioPoint[] {
     value,
   }))
 }
+
+// Fixed presentation fixtures for the generated demo series; no live valuations.
+export const MOCK_PERFORMANCE = {
+  '1M': {
+    peak: 126836.9883188763,
+    trough: 122951.64525902117,
+    peakDate: '2026-04-23',
+    troughDate: '2026-03-26',
+    stdPct: 0.9433619416329062,
+    maxDd: -0.014790861433573646,
+    maxDdPln: -1876.0283188762987,
+    change: 1899.8673533998517,
+    changePct: 1.5438407969087213,
+  },
+  '3M': {
+    peak: 125060.1765662738,
+    trough: 118624.15209969024,
+    peakDate: '2026-04-24',
+    troughDate: '2026-02-02',
+    stdPct: 1.5964802583744993,
+    maxDd: -0.007825239956046297,
+    maxDdPln: -978.6258905766106,
+    change: 6108.744194864776,
+    changePct: 5.139781495433286,
+  },
+  '6M': {
+    peak: 137335.0497092299,
+    trough: 115252.57608755224,
+    peakDate: '2026-04-18',
+    troughDate: '2025-10-31',
+    stdPct: 5.253664772521115,
+    maxDd: -0.09010146889252751,
+    maxDdPln: -12374.089709229898,
+    change: 9644.20587897922,
+    changePct: 8.363230436453296,
+  },
+  '1R': {
+    peak: 140788.432738679,
+    trough: 108027.5396858041,
+    peakDate: '2026-04-24',
+    troughDate: '2025-05-24',
+    stdPct: 8.39216027302494,
+    maxDd: -0.11242026373044983,
+    maxDdPln: -15827.47273867899,
+    change: 16716.69581322222,
+    changePct: 15.443493416313686,
+  },
+  MAX: {
+    peak: 163253.56039965875,
+    trough: 52302.93600000863,
+    peakDate: '2026-04-15',
+    troughDate: '2021-04-25',
+    stdPct: 28.854317072875034,
+    maxDd: -0.2345590522247427,
+    maxDdPln: -38292.60039965874,
+    change: 72658.02399999138,
+    changePct: 138.91767758502004,
+  },
+} satisfies Record<RangeKey, PerformanceStatistics>

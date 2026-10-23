@@ -39,5 +39,6 @@ export async function apiRequest<T>(
             : 'Nie udało się pobrać lub zapisać danych.'
     )
   }
+  if (response.status === 204) return undefined as T
   return response.json()
 }

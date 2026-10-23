@@ -1,13 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useSession } from '@/api/auth'
 import { apiRequest } from '@/api/client'
+import { generateSeries, MOCK_PERFORMANCE } from '@/mocks/portfolio'
 import type {
-  Allocation,
   CashOperationInput,
   DepositOperationInput,
-  Holding,
   Operation,
   PortfolioPoint,
+  PortfolioDashboard,
   PortfolioStatistics,
   RangeKey,
 } from '@/types/portfolio'
@@ -28,40 +28,61 @@ export const usePortfolioStatistics = (range: RangeKey) => {
 }
 
 export const usePortfolioKpi = () => {
-  const query = usePortfolioStatistics('1R')
+  const query = usePortfolioDashboard()
   return { ...query, data: query.data?.kpi }
 }
 
-export const useHoldings = () => {
+export const usePortfolioPerformance = (range: RangeKey) =>
+  useQuery({
+    queryKey: ['portfolio', 'mock-performance', range],
+    queryFn: () => ({
+      series: generateSeries(range),
+      performance: MOCK_PERFORMANCE[range],
+    }),
+    staleTime: Infinity,
+  })
+
+const usePortfolioDashboard = () => {
   const { data: session } = useSession()
   const userId = session?.user.id
   return useQuery({
-    queryKey: ['portfolio', userId, 'holdings'],
+    queryKey: ['portfolio', userId, 'dashboard'],
     queryFn: ({ signal }) =>
-      apiRequest<Holding[]>('/portfolio/holdings', userId!, { signal }),
+      apiRequest<PortfolioDashboard>('/portfolio/dashboard', userId!, {
+        signal,
+      }),
     enabled: Boolean(userId),
   })
+}
+
+export const useHoldings = () => {
+  const query = usePortfolioDashboard()
+  return { ...query, data: query.data?.holdings }
 }
 
 export const useAllocation = () => {
-  const { data: session } = useSession()
-  const userId = session?.user.id
-  return useQuery({
-    queryKey: ['portfolio', userId, 'allocation'],
-    queryFn: ({ signal }) =>
-      apiRequest<Allocation>('/portfolio/allocation', userId!, { signal }),
-    enabled: Boolean(userId),
-  })
+  const query = usePortfolioDashboard()
+  return { ...query, data: query.data?.allocation }
 }
 
 export const useOperations = () => {
+  const query = usePortfolioDashboard()
+  return { ...query, data: query.data?.operations }
+}
+
+export const useDeleteOperation = () => {
+  const queryClient = useQueryClient()
   const { data: session } = useSession()
   const userId = session?.user.id
-  return useQuery({
-    queryKey: ['portfolio', userId, 'operations'],
-    queryFn: ({ signal }) =>
-      apiRequest<Operation[]>('/transactions', userId!, { signal }),
-    enabled: Boolean(userId),
+  return useMutation({
+    mutationFn: (transactionId: string) => {
+      if (!userId) throw new Error('Zaloguj się ponownie.')
+      return apiRequest<void>(`/transactions/${transactionId}`, userId, {
+        method: 'DELETE',
+      })
+    },
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: ['portfolio', userId] }),
   })
 }
 
@@ -77,8 +98,9 @@ export const useAddCashOperation = () => {
         body: JSON.stringify(data),
       })
     },
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ['portfolio', userId] }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['portfolio', userId] })
+    },
   })
 }
 
@@ -94,13 +116,14 @@ export const useAddDepositOperation = () => {
         body: JSON.stringify(data),
       })
     },
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ['portfolio', userId] }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['portfolio', userId] })
+    },
   })
 }
 
 export const usePortfolioSeries = (range: RangeKey) => {
-  const query = usePortfolioStatistics(range)
+  const query = usePortfolioPerformance(range)
   const series = query.data?.series
   // Do not connect chart points across dates with unavailable valuations.
   const data: PortfolioPoint[] | undefined = series

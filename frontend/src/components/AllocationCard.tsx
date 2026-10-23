@@ -5,7 +5,7 @@ import { useAllocation } from '@/api/portfolio'
 import { Button } from '@/components/ui/button'
 
 export const AllocationCard = () => {
-  const { data: allocation, isLoading, isError, refetch } = useAllocation()
+  const { data: allocation, isFetching, isError, refetch } = useAllocation()
 
   return (
     <Card>
@@ -22,7 +22,7 @@ export const AllocationCard = () => {
               Spróbuj ponownie
             </Button>
           </div>
-        ) : isLoading || !allocation ? (
+        ) : isFetching || !allocation ? (
           <div className="flex flex-col items-center gap-5">
             <Skeleton className="h-60 w-60 rounded-full" />
             <div className="w-full space-y-3">

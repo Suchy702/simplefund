@@ -68,6 +68,11 @@ class Operation(ApiModel):
     value: Amount | None
     currency: Currency
     date: Date
+    exchange_rate: Amount | None = Field(
+        default=None, description="PLN per unit of operation currency on its date."
+    )
+    exchange_rate_date: Date | None = None
+    value_pln: Amount | None = None
 
 
 class Holding(ApiModel):
@@ -83,6 +88,15 @@ class Holding(ApiModel):
     change: Amount | None
     change_pct: Amount | None
     color: str
+    price_currency: Currency | None = Field(
+        default=None, description="Currency of the displayed market price."
+    )
+    exchange_rate: Amount | None = Field(
+        default=None,
+        description="PLN per unit of price currency (or holding currency without a "
+        "market price), using the latest rate on or before valuation date.",
+    )
+    exchange_rate_date: Date | None = None
 
 
 class AllocationSegment(ApiModel):
@@ -110,9 +124,12 @@ class PortfolioKpi(ApiModel):
     total_value: Amount | None
     balance: Amount | None
     roi: Amount | None = Field(description="Profit / positive net contributions, in %.")
-    cagr: Amount | None = Field(
-        description="Annualized geometrically linked daily returns, adjusted for "
-        "end-of-day flows, using a 365-day year. Null for incomplete history."
+    xirr: Amount | None = Field(
+        description="Annual money-weighted return in %, using dated cash flows and "
+        "the current portfolio value as terminal proceeds, with a 365-day year. "
+        "Purchases/deposits are investor outflows; sales/withdrawals are inflows. "
+        "Null for missing valuations or FX, insufficient dated flows of opposite "
+        "signs, or when the numerical solver cannot find a rate above -100%."
     )
     unvalued_count: int
 
@@ -120,6 +137,13 @@ class PortfolioKpi(ApiModel):
 class PortfolioPoint(ApiModel):
     date: Date
     value: Amount | None
+
+
+class PortfolioDashboard(ApiModel):
+    kpi: PortfolioKpi
+    holdings: list[Holding]
+    allocation: PortfolioAllocation
+    operations: list[Operation]
 
 
 class PerformanceStatistics(ApiModel):

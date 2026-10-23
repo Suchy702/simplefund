@@ -80,6 +80,15 @@
   }
 }
 
+@keyframes skeleton-shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
 @keyframes dropdown-down {
   from {
     height: 0;
@@ -103,6 +112,24 @@
 }
 
 @layer utilities {
+  .skeleton-shimmer {
+    background-image: linear-gradient(
+      100deg,
+      transparent 30%,
+      var(--border-strong) 50%,
+      transparent 70%
+    );
+    background-size: 200% 100%;
+    animation: skeleton-shimmer 1.8s linear infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .skeleton-shimmer {
+      animation: none;
+      background-image: none;
+    }
+  }
+
   .tabular {
     font-variant-numeric: tabular-nums;
   }

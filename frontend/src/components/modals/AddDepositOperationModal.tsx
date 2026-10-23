@@ -6,7 +6,7 @@ import { format } from 'date-fns'
 import { useAddDepositOperation } from '@/api/portfolio'
 
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { DatePicker } from '@/components/ui/date-picker'
 import {
   Dialog,
   DialogContent,
@@ -181,11 +181,18 @@ export const AddDepositOperationModal = ({
               >
                 Data rozpoczęcia
               </label>
-              <Input
-                id="deposit-start-date"
-                type="date"
-                max={format(new Date(), 'yyyy-MM-dd')}
-                {...register('startDate')}
+              <Controller
+                name="startDate"
+                control={control}
+                render={({ field }) => (
+                  <DatePicker
+                    {...field}
+                    id="deposit-start-date"
+                    max={format(new Date(), 'yyyy-MM-dd')}
+                    disabled={mutation.isPending}
+                    invalid={Boolean(errors.startDate)}
+                  />
+                )}
               />
               {errors.startDate && (
                 <p className="text-12 text-destructive">
@@ -201,10 +208,17 @@ export const AddDepositOperationModal = ({
               >
                 Data zapadalności
               </label>
-              <Input
-                id="deposit-maturity-date"
-                type="date"
-                {...register('maturityDate')}
+              <Controller
+                name="maturityDate"
+                control={control}
+                render={({ field }) => (
+                  <DatePicker
+                    {...field}
+                    id="deposit-maturity-date"
+                    disabled={mutation.isPending}
+                    invalid={Boolean(errors.maturityDate)}
+                  />
+                )}
               />
               {errors.maturityDate && (
                 <p className="text-12 text-destructive">

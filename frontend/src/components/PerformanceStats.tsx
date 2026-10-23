@@ -1,6 +1,6 @@
 import { Card } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
-import { usePortfolioStatistics } from '@/api/portfolio'
+import { usePortfolioPerformance } from '@/api/portfolio'
 import { cn } from '@/lib/utils'
 import { fmtMoney, fmtPct } from '@/lib/formatters'
 import { formatSeriesDate } from '@/lib/performance'
@@ -35,7 +35,7 @@ const StatCell = ({ label, value, sub, toneClass }: CellProps) => (
 )
 
 export const PerformanceStats = ({ range }: PerformanceStatsProps) => {
-  const { data, isLoading } = usePortfolioStatistics(range)
+  const { data, isLoading } = usePortfolioPerformance(range)
   const stats = data?.performance
 
   if (isLoading) {

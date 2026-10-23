@@ -29,6 +29,9 @@ export interface Holding {
   change: number | null
   changePct: number | null
   color: string
+  priceCurrency: Currency | null
+  exchangeRate: number | null
+  exchangeRateDate: string | null
 }
 
 export interface Operation {
@@ -41,6 +44,9 @@ export interface Operation {
   value: number | null
   currency: Currency
   date: string
+  exchangeRate: number | null
+  exchangeRateDate: string | null
+  valuePln: number | null
 }
 
 export interface AllocationSegment {
@@ -60,7 +66,7 @@ export interface PortfolioKpi {
   totalValue: number | null
   balance: number | null
   roi: number | null
-  cagr: number | null
+  xirr: number | null
   unvaluedCount?: number
   syncedMinutesAgo?: number | null
   asOfDate: string
@@ -83,6 +89,13 @@ export interface PortfolioStatistics {
   kpi: PortfolioKpi
   series: { date: string; value: number | null }[]
   performance: PerformanceStatistics | null
+}
+
+export interface PortfolioDashboard {
+  kpi: PortfolioKpi
+  holdings: Holding[]
+  allocation: Allocation
+  operations: Operation[]
 }
 
 export interface CashOperationInput {

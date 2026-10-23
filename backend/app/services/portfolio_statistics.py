@@ -1,26 +1,28 @@
 from calendar import monthrange
 from collections import defaultdict
-from datetime import date, timedelta
-from decimal import Decimal, DecimalException
-from math import isfinite
+from datetime import date
+from decimal import Decimal
+from math import exp, expm1, fsum, isfinite
 from uuid import UUID
 
 from sqlalchemy.orm import Session
 
 from app.models.enums import TransactionType
-from app.repositories.portfolio import exchange_rates, stock_prices, transaction_rows
 from app.schemas.portfolio import (
+    Holding,
     PerformanceStatistics,
+    PortfolioDashboard,
     PortfolioKpi,
     PortfolioPoint,
     PortfolioRange,
     PortfolioStatistics,
 )
+from app.services.exchange_rates import ExchangeRateHistory, exchange_rate_on
 from app.services.portfolio import (
     ONE,
     ZERO,
-    exchange_rate_on,
-    holdings_from_rows,
+    allocation_from_holdings,
+    load_portfolio,
     operation_from_row,
 )
 
@@ -76,42 +78,97 @@ def performance_statistics(
     )
 
 
-def annualized_return(
-    series: list[PortfolioPoint], returns: list[Decimal | None]
+def xirr(
+    contributions: dict[date, Decimal | None],
+    final_value: Decimal | None,
+    on: date,
 ) -> Decimal | None:
-    if len(series) < 2 or any(point.value is None for point in series):
+    """Solve dated investor cash flows plus terminal value, returning annual %."""
+    if final_value is None or not final_value.is_finite() or final_value < ZERO:
         return None
-    if series[0].value is None or series[0].value <= ZERO:
-        return None
-    growth = ONE
-    for daily_return in returns:
-        if daily_return is None or daily_return < -ONE:
+    cash_flows: dict[date, Decimal] = {}
+    for when, amount in contributions.items():
+        if amount is None or not amount.is_finite() or when > on:
             return None
-        growth *= ONE + daily_return
-    days = (series[-1].date - series[0].date).days
-    if not days:
+        # This ledger funds assets independently: buys/deposits are investor
+        # outflows, while sells/withdrawals return capital to the investor.
+        cash_flows[when] = -amount
+    cash_flows[on] = cash_flows.get(on, ZERO) + final_value
+    dated = sorted((when, amount) for when, amount in cash_flows.items() if amount)
+    if len(dated) < 2:
         return None
-    try:
-        result = (growth ** (Decimal(365) / days) - ONE) * 100
-        return result if isfinite(float(result)) else None
-    except (DecimalException, OverflowError):
+    amounts = [amount for _, amount in dated]
+    if not any(amount < ZERO for amount in amounts) or not any(
+        amount > ZERO for amount in amounts
+    ):
         return None
+    scale = max(abs(amount) for amount in amounts)
+    payments = [
+        ((when - dated[0][0]).days / 365, float(amount / scale))
+        for when, amount in dated
+    ]
+
+    def present_value(log_growth: float) -> float:
+        # Solve in log(1 + rate), keeping rates above -100%. Scaling all
+        # discounted payments by the same factor prevents exponential overflow.
+        exponents = [-log_growth * years for years, _ in payments]
+        shift = max(exponents)
+        return fsum(
+            amount * exp(exponent - shift)
+            for (_, amount), exponent in zip(payments, exponents)
+        )
+
+    at_zero = present_value(0)
+    if at_zero == 0:
+        return ZERO
+    lower, upper = -0.5, 0.5
+    for _ in range(7):
+        low_value, high_value = present_value(lower), present_value(upper)
+        if low_value * high_value <= 0:
+            break
+        lower *= 2
+        upper *= 2
+    else:
+        return None
+
+    for _ in range(100):
+        middle = (lower + upper) / 2
+        value = present_value(middle)
+        if value == 0 or upper - lower < 1e-12:
+            result = expm1(middle) * 100
+            return Decimal(str(result)) if isfinite(result) and result > -100 else None
+        if (value > 0) == (low_value > 0):
+            lower, low_value = middle, value
+        else:
+            upper = middle
+    return None
 
 
 def portfolio_statistics(
     db: Session, user_id: UUID, selected_range: PortfolioRange = "1R"
 ) -> PortfolioStatistics:
-    """Read data once and reuse the holdings valuation for every historical date.
+    """Calculate current KPIs without rebuilding historical daily valuations."""
+    rows, rates, holdings, today = load_portfolio(db, user_id)
+    return statistics_from_holdings(rows, rates, holdings, today, selected_range)
 
-    The current ledger records each asset independently: buys and deposits add
-    capital, sells and withdrawals remove it. It does not record transfers from
-    cash to other assets. Returns therefore treat all these movements as flows.
-    Prices and FX rates are carried forward, never backward from a future date.
-    """
-    today = date.today()
-    rows = transaction_rows(db, user_id)
-    rates = exchange_rates(db)
-    market, manual = stock_prices(db, user_id)
+
+def portfolio_dashboard(db: Session, user_id: UUID) -> PortfolioDashboard:
+    rows, rates, holdings, today = load_portfolio(db, user_id)
+    return PortfolioDashboard(
+        kpi=statistics_from_holdings(rows, rates, holdings, today).kpi,
+        holdings=holdings,
+        allocation=allocation_from_holdings(holdings),
+        operations=[operation_from_row(row, rates) for row in reversed(rows)],
+    )
+
+
+def statistics_from_holdings(
+    rows,
+    rates: ExchangeRateHistory,
+    holdings: list[Holding],
+    today: date,
+    selected_range: PortfolioRange = "1R",
+) -> PortfolioStatistics:
     flows: dict[date, Decimal | None] = defaultdict(lambda: ZERO)
     for row in rows:
         transaction = row[0]
@@ -129,34 +186,11 @@ def portfolio_statistics(
         else None
     )
 
-    history: list[PortfolioPoint] = []
-    returns: list[Decimal | None] = []
-    holdings = []
-    on = rows[0][0].date if rows else today
-    previous_value = None
-    while on <= today:
-        holdings = holdings_from_rows(rows, rates, market, manual, on)
-        value = (
-            sum((h.value for h in holdings if h.value is not None), ZERO)
-            if all(h.value is not None for h in holdings)
-            else None
-        )
-        flow = flows.get(on, ZERO)
-        if history:
-            daily_return = None
-            if previous_value is not None and value is not None and flow is not None:
-                if previous_value > ZERO:
-                    daily_return = (value - flow) / previous_value - ONE
-                elif previous_value == ZERO and value == flow:
-                    # No capital was exposed during this interval.
-                    daily_return = ZERO
-            returns.append(daily_return)
-        if rows:
-            history.append(PortfolioPoint(date=on, value=value))
-        previous_value = value
-        on += timedelta(days=1)
-
-    total_value = previous_value
+    total_value = (
+        sum((holding.value for holding in holdings if holding.value is not None), ZERO)
+        if all(holding.value is not None for holding in holdings)
+        else None
+    )
     balance = (
         total_value - total_contrib
         if total_value is not None and total_contrib is not None
@@ -170,15 +204,12 @@ def portfolio_statistics(
         roi=balance / total_contrib * 100
         if balance is not None and total_contrib is not None and total_contrib > ZERO
         else None,
-        cagr=annualized_return(history, returns),
+        xirr=xirr(flows, total_value, today),
         unvalued_count=sum(h.value is None for h in holdings),
     )
-    start = range_start(today, selected_range)
-    offset = next((i for i, point in enumerate(history) if point.date >= start), 0)
-    series = history[offset:]
     return PortfolioStatistics(
         range=selected_range,
         kpi=kpi,
-        series=series,
-        performance=performance_statistics(series, returns[offset:]),
+        series=[],
+        performance=None,
     )

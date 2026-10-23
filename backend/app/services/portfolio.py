@@ -4,13 +4,24 @@ from decimal import Decimal
 from uuid import UUID
 
 from fastapi import HTTPException
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
-from app.models import CashTransaction, DepositTransaction, Profile, Transaction
-from app.models.enums import AssetType, Currency, TransactionType
-from app.repositories.portfolio import exchange_rates, stock_prices, transaction_rows
+from app.models import (
+    BondTransaction,
+    CashTransaction,
+    DepositTransaction,
+    Profile,
+    StockTransaction,
+    Transaction,
+)
+from app.models.enums import AssetType, TransactionType
+from app.repositories.portfolio import (
+    exchange_rates,
+    stock_prices,
+    transaction_rows,
+)
 from app.schemas.portfolio import (
     AllocationSegment,
     CashOperationCreate,
@@ -19,6 +30,7 @@ from app.schemas.portfolio import (
     Operation,
     PortfolioAllocation,
 )
+from app.services.exchange_rates import ExchangeRateHistory, exchange_rate_on
 
 ZERO = Decimal(0)
 ONE = Decimal(1)
@@ -33,7 +45,10 @@ ALLOCATION_CLASSES = {
 
 
 def portfolio_allocation(db: Session, user_id: UUID) -> PortfolioAllocation:
-    holdings = list_holdings(db, user_id)
+    return allocation_from_holdings(list_holdings(db, user_id))
+
+
+def allocation_from_holdings(holdings: list[Holding]) -> PortfolioAllocation:
     grouped = defaultdict(list)
     for holding in holdings:
         if holding.value is not None and holding.value > ZERO:
@@ -66,7 +81,7 @@ def portfolio_allocation(db: Session, user_id: UUID) -> PortfolioAllocation:
     )
 
 
-def operation_from_row(row) -> Operation:
+def operation_from_row(row, rates: ExchangeRateHistory | None = None) -> Operation:
     transaction, cash, stock_trade, stock, deposit, bond = row
     kind = {
         AssetType.cash: "Gotówka",
@@ -89,6 +104,11 @@ def operation_from_row(row) -> Operation:
     elif bond is not None:
         name, qty, price = bond.series_code, Decimal(bond.quantity), bond.price_per_unit
         value = qty * price if price is not None else None
+    fx, fx_date = (
+        rates.on(transaction.currency, transaction.date)
+        if rates is not None
+        else (None, None)
+    )
     return Operation(
         id=transaction.id,
         type=operation_type,
@@ -99,6 +119,9 @@ def operation_from_row(row) -> Operation:
         value=value,
         currency=transaction.currency,
         date=transaction.date,
+        exchange_rate=fx,
+        exchange_rate_date=fx_date,
+        value_pln=value * fx if value is not None and fx is not None else None,
     )
 
 
@@ -155,7 +178,10 @@ def create_cash_operation(
         cash = CashTransaction(transaction_id=transaction.id, value=data.value)
         db.add(cash)
         db.flush()
-        result = operation_from_row((transaction, cash, None, None, None, None))
+        result = operation_from_row(
+            (transaction, cash, None, None, None, None),
+            ExchangeRateHistory(exchange_rates(db, [(data.currency, data.date)])),
+        )
     return result
 
 
@@ -189,36 +215,100 @@ def create_deposit_operation(
         )
         db.add(deposit)
         db.flush()
-        result = operation_from_row((transaction, None, None, None, deposit, None))
+        result = operation_from_row(
+            (transaction, None, None, None, deposit, None),
+            ExchangeRateHistory(exchange_rates(db, [(data.currency, data.start_date)])),
+        )
     return result
 
 
+def delete_operation(db: Session, user_id: UUID, transaction_id: UUID) -> None:
+    with db.begin():
+        # Use the same profile lock as cash creation to serialize balance changes.
+        db.execute(select(Profile.id).where(Profile.id == user_id).with_for_update())
+        transaction = db.scalar(
+            select(Transaction)
+            .where(
+                Transaction.id == transaction_id,
+                Transaction.user_id == user_id,
+            )
+            .with_for_update()
+        )
+        if transaction is None:
+            raise HTTPException(404, "Nie znaleziono transakcji")
+        if transaction.asset_type == AssetType.cash:
+            rows = db.execute(
+                select(Transaction.date, Transaction.type, CashTransaction.value)
+                .join(CashTransaction)
+                .where(
+                    Transaction.user_id == user_id,
+                    Transaction.asset_type == AssetType.cash,
+                    Transaction.currency == transaction.currency,
+                    Transaction.id != transaction_id,
+                )
+            ).all()
+            daily = defaultdict(lambda: ZERO)
+            for operation_date, operation_type, value in rows:
+                daily[operation_date] += (
+                    value if operation_type == TransactionType.buy else -value
+                )
+            balance = ZERO
+            for operation_date in sorted(daily):
+                balance += daily[operation_date]
+                if balance < ZERO:
+                    raise HTTPException(
+                        409,
+                        "Nie można usunąć transakcji: saldo gotówki stałoby się ujemne",
+                    )
+        # Detail rows have foreign keys without ON DELETE CASCADE.
+        for model in (
+            CashTransaction,
+            DepositTransaction,
+            StockTransaction,
+            BondTransaction,
+        ):
+            db.execute(delete(model).where(model.transaction_id == transaction_id))
+        db.delete(transaction)
+
+
 def list_operations(db: Session, user_id: UUID) -> list[Operation]:
-    return [operation_from_row(row) for row in reversed(transaction_rows(db, user_id))]
-
-
-def exchange_rate_on(rates, currency: Currency, on: date) -> Decimal | None:
-    if currency == Currency.PLN:
-        return ONE
-    return next(
-        (
-            r.rate
-            for r in reversed(rates)
-            if r.currency == currency and r.rate_date <= on
-        ),
-        None,
+    rows = transaction_rows(db, user_id)
+    rates = ExchangeRateHistory(
+        exchange_rates(db, [(row[0].currency, row[0].date) for row in rows])
     )
+    return [operation_from_row(row, rates) for row in reversed(rows)]
 
 
 def list_holdings(db: Session, user_id: UUID) -> list[Holding]:
-    market, manual = stock_prices(db, user_id)
-    return holdings_from_rows(
-        transaction_rows(db, user_id), exchange_rates(db), market, manual, date.today()
+    return load_portfolio(db, user_id)[2]
+
+
+def load_portfolio(db: Session, user_id: UUID):
+    today = date.today()
+    rows = transaction_rows(db, user_id)
+    quantities = defaultdict(lambda: ZERO)
+    for transaction, _, trade, _, _, _ in rows:
+        if trade is not None:
+            sign = ONE if transaction.type == TransactionType.buy else -ONE
+            quantities[trade.stock_id, transaction.currency] += sign * trade.volume
+    market, manual = stock_prices(
+        db,
+        user_id,
+        [stock_id for (stock_id, _), qty in quantities.items() if qty != ZERO],
     )
+    requested_rates = [(row[0].currency, row[0].date) for row in rows]
+    requested_rates.extend((row[0].currency, today) for row in rows)
+    requested_rates.extend((price.currency, today) for price in [*market, *manual])
+    rates = ExchangeRateHistory(exchange_rates(db, requested_rates))
+    holdings = holdings_from_rows(rows, rates, market, manual, today)
+    return rows, rates, holdings, today
 
 
 def holdings_from_rows(rows, rates, market, manual, on: date) -> list[Holding]:
     """Value a portfolio snapshot using only observations available on its date."""
+    rates = (
+        rates if isinstance(rates, ExchangeRateHistory) else ExchangeRateHistory(rates)
+    )
     positions: dict[str, Holding] = {}
     deposit_terms: dict[str, DepositTransaction] = {}
     for row in rows:
@@ -302,16 +392,24 @@ def holdings_from_rows(rows, rates, market, manual, on: date) -> list[Holding]:
     for position in positions.values():
         if position.qty == ZERO:
             continue
-        fx = exchange_rate_on(rates, position.currency, on)
+        fx, fx_date = rates.on(position.currency, on)
+        position.exchange_rate = fx
+        position.exchange_rate_date = fx_date
         if position.asset_class == "Gotówka":
             position.value = position.qty * fx if fx is not None else None
         elif position.asset_class == "Akcje":
             stock_id = UUID(position.id.split(":")[0])
             price = prices.get(stock_id)
-            if price is not None and price.currency == position.currency:
+            if price is not None:
                 position.price = price.price
+                position.price_currency = price.currency
+                price_fx, price_fx_date = rates.on(price.currency, on)
+                position.exchange_rate = price_fx
+                position.exchange_rate_date = price_fx_date
                 position.value = (
-                    position.qty * price.price * fx if fx is not None else None
+                    position.qty * price.price * price_fx
+                    if price_fx is not None
+                    else None
                 )
         elif position.asset_class == "Lokata":
             deposit = deposit_terms[position.id]

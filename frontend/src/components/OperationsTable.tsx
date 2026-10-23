@@ -19,12 +19,13 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { useOperations } from '@/api/portfolio'
+import { useDeleteOperation, useOperations } from '@/api/portfolio'
 import { fmtNumber } from '@/lib/formatters'
 import { format, parseISO } from 'date-fns'
 
 export const OperationsTable = () => {
-  const { data: ops, isLoading, isError, refetch } = useOperations()
+  const { data: ops, isFetching, isError, refetch } = useOperations()
+  const deleteOperation = useDeleteOperation()
   const numberOrDash = (value: number | null) =>
     value === null ? '—' : fmtNumber(value)
 
@@ -48,6 +49,11 @@ export const OperationsTable = () => {
         </div>
       </CardHeader>
       <CardContent className="p-0">
+        {deleteOperation.isError && (
+          <div role="alert" className="p-6 text-sm text-negative">
+            {deleteOperation.error.message}
+          </div>
+        )}
         {isError ? (
           <div role="alert" className="p-6 text-sm">
             Nie udało się pobrać historii operacji.
@@ -60,7 +66,7 @@ export const OperationsTable = () => {
               Spróbuj ponownie
             </Button>
           </div>
-        ) : isLoading || !ops ? (
+        ) : isFetching || !ops ? (
           <div className="p-6">
             <Skeleton className="h-64 w-full" />
           </div>
@@ -75,6 +81,7 @@ export const OperationsTable = () => {
                 <TableHead className="text-right">Cena</TableHead>
                 <TableHead className="text-right">Wartość</TableHead>
                 <TableHead>Waluta</TableHead>
+                <TableHead className="text-right">Wartość (PLN)</TableHead>
                 <TableHead>Data</TableHead>
                 <TableHead />
               </TableRow>
@@ -83,7 +90,7 @@ export const OperationsTable = () => {
               {ops.length === 0 && (
                 <TableRow>
                   <TableCell
-                    colSpan={9}
+                    colSpan={10}
                     className="py-10 text-center text-ink-3"
                   >
                     Brak operacji. Dodaj pierwszą wpłatę gotówki.
@@ -115,6 +122,9 @@ export const OperationsTable = () => {
                     {numberOrDash(o.value)}
                   </TableCell>
                   <TableCell>{o.currency}</TableCell>
+                  <TableCell className="text-right font-mono tabular font-medium">
+                    {numberOrDash(o.valuePln)}
+                  </TableCell>
                   <TableCell className="font-mono text-xs text-ink-3">
                     {format(parseISO(o.date), 'dd.MM.yyyy')}
                   </TableCell>
@@ -124,6 +134,8 @@ export const OperationsTable = () => {
                       size="icon"
                       aria-label="Usuń"
                       title="Usuń"
+                      disabled={deleteOperation.isPending}
+                      onClick={() => deleteOperation.mutate(o.id)}
                     >
                       <Trash2 size={13} />
                     </Button>

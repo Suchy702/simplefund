@@ -10,7 +10,7 @@ import { format } from 'date-fns'
 import { useAddCashOperation } from '@/api/portfolio'
 
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { DatePicker } from '@/components/ui/date-picker'
 import {
   Dialog,
   DialogContent,
@@ -195,11 +195,18 @@ export const AddCashOperationModal = ({
               >
                 Data operacji
               </label>
-              <Input
-                id="cash-date"
-                type="date"
-                max={format(new Date(), 'yyyy-MM-dd')}
-                {...register('date')}
+              <Controller
+                name="date"
+                control={control}
+                render={({ field }) => (
+                  <DatePicker
+                    {...field}
+                    id="cash-date"
+                    max={format(new Date(), 'yyyy-MM-dd')}
+                    disabled={mutation.isPending}
+                    invalid={Boolean(errors.date)}
+                  />
+                )}
               />
               {errors.date && (
                 <p className="text-12 text-destructive">

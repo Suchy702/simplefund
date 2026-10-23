@@ -16,7 +16,7 @@ import { cn } from '@/lib/utils'
 import { fmtMoney, fmtNumber } from '@/lib/formatters'
 
 export const HoldingsTable = () => {
-  const { data: holdings, isLoading, isError, refetch } = useHoldings()
+  const { data: holdings, isFetching, isError, refetch } = useHoldings()
   const numberOrDash = (value: number | null) =>
     value === null ? '—' : fmtNumber(value)
 
@@ -35,7 +35,7 @@ export const HoldingsTable = () => {
               Spróbuj ponownie
             </Button>
           </div>
-        ) : isLoading || !holdings ? (
+        ) : isFetching || !holdings ? (
           <div className="p-6">
             <Skeleton className="h-64 w-full" />
           </div>
@@ -90,7 +90,7 @@ export const HoldingsTable = () => {
                               {fmtNumber(h.price)}
                             </span>
                             <span className="font-mono text-tiny text-ink-3">
-                              {h.currency}
+                              {h.priceCurrency ?? h.currency}
                             </span>
                           </div>
                         </div>
