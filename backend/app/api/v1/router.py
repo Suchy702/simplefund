@@ -1,10 +1,12 @@
+from datetime import date
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Response
+from fastapi import APIRouter, BackgroundTasks, Depends, Query, Response
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.dependencies import get_current_user
+from app.models.enums import Currency
 from app.schemas.portfolio import (
     CashOperationCreate,
     DepositOperationCreate,
@@ -15,6 +17,11 @@ from app.schemas.portfolio import (
     PortfolioRange,
     PortfolioStatistics,
 )
+from app.schemas.stocks import (
+    StockInstrument,
+    StockOperationCreate,
+    StockPriceSuggestion,
+)
 from app.services.portfolio import (
     create_cash_operation,
     create_deposit_operation,
@@ -24,16 +31,23 @@ from app.services.portfolio import (
     portfolio_allocation,
 )
 from app.services.portfolio_statistics import portfolio_dashboard, portfolio_statistics
+from app.services.stock_prices import invalidate_user_prices, refresh_user_prices
+from app.services.stocks import create_stock_operation, list_held_stocks
+from app.services.yahoo import search_stocks, suggest_stock_price
 
 router = APIRouter()
 
 
 @router.get("/portfolio/dashboard", response_model=PortfolioDashboard)
 def dashboard(
+    background_tasks: BackgroundTasks,
     user: dict = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    return portfolio_dashboard(db, UUID(user["sub"]))
+    user_id = UUID(user["sub"])
+    result = portfolio_dashboard(db, user_id)
+    background_tasks.add_task(refresh_user_prices, user_id)
+    return result
 
 
 @router.get("/portfolio/statistics", response_model=PortfolioStatistics)
@@ -69,6 +83,46 @@ def add_deposit(
     db: Session = Depends(get_db),
 ):
     return create_deposit_operation(db, user, data)
+
+
+@router.get("/stocks/held", response_model=list[StockInstrument])
+def held_instruments(
+    user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    return list_held_stocks(db, UUID(user["sub"]))
+
+
+@router.get("/stocks/search", response_model=list[StockInstrument])
+def search_instruments(
+    q: str = Query(min_length=1, max_length=100, pattern=r"\S"),
+    user: dict = Depends(get_current_user),
+):
+    return search_stocks(q)
+
+
+@router.get("/stocks/price", response_model=StockPriceSuggestion)
+def stock_price_suggestion(
+    ticker: str = Query(min_length=1, max_length=64, pattern=r"^\S+$"),
+    on: date = Query(alias="date"),
+    currency: Currency = Query(),
+    user: dict = Depends(get_current_user),
+):
+    return suggest_stock_price(ticker, on, currency)
+
+
+@router.post("/transactions/stocks", response_model=Operation, status_code=201)
+def add_stock(
+    data: StockOperationCreate,
+    background_tasks: BackgroundTasks,
+    user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    result = create_stock_operation(db, user, data)
+    user_id = UUID(user["sub"])
+    invalidate_user_prices(user_id)
+    background_tasks.add_task(refresh_user_prices, user_id)
+    return result
 
 
 @router.get("/transactions", response_model=list[Operation])

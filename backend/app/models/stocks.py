@@ -14,6 +14,8 @@ class Stock(Base):
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     ticker: Mapped[str] = mapped_column(String, nullable=False, unique=True)
     name: Mapped[str] = mapped_column(String, nullable=False)
+    exchange: Mapped[str | None] = mapped_column(String, nullable=True)
+    quote_type: Mapped[str | None] = mapped_column(String, nullable=True)
     currency: Mapped[Currency] = mapped_column(Enum(Currency), nullable=False)
     manual_price_only: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(

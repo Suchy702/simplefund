@@ -4,6 +4,8 @@
 
 @layer base {
   :root {
+    color-scheme: light;
+
     --bg: oklch(98.5% 0.005 80);
     --bg-elevated: oklch(100% 0 0);
     --bg-subtle: oklch(96.5% 0.006 80);
@@ -43,6 +45,9 @@
   }
 
   [data-theme='dark'] {
+    color-scheme: dark;
+    scrollbar-color: var(--ink-4) var(--bg-subtle);
+
     --bg: oklch(18% 0.01 60);
     --bg-elevated: oklch(22% 0.012 60);
     --bg-subtle: oklch(20% 0.011 60);

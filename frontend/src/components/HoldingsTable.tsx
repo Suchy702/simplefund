@@ -40,8 +40,8 @@ export const HoldingsTable = () => {
             <Skeleton className="h-64 w-full" />
           </div>
         ) : (
-          <Table>
-            <TableHeader>
+          <Table containerClassName="max-h-[551px]">
+            <TableHeader className="sticky top-0 z-10">
               <TableRow>
                 <TableHead>Aktywo</TableHead>
                 <TableHead className="text-right">Wolumen</TableHead>
@@ -58,13 +58,13 @@ export const HoldingsTable = () => {
                     colSpan={6}
                     className="py-10 text-center text-ink-3"
                   >
-                    Brak aktywów. Dodaj pierwszą wpłatę gotówki.
+                    Brak aktywów. Dodaj pierwszą operację.
                   </TableCell>
                 </TableRow>
               )}
               {holdings.map((h) => {
                 return (
-                  <TableRow key={h.id}>
+                  <TableRow key={h.id} className="h-[73px]">
                     <TableCell>
                       <div className="inline-flex items-center gap-2.5">
                         <TickerBadge ticker={h.ticker} color={h.color} />

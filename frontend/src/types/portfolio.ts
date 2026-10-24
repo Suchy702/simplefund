@@ -117,3 +117,29 @@ export interface DepositOperationInput {
   startDate: string
   maturityDate: string
 }
+
+export interface StockInstrument {
+  ticker: string
+  name: string
+  exchange: string | null
+  currency: string | null
+  quoteType: string | null
+  canTransact: boolean
+  unavailableReason: string | null
+}
+
+export interface StockOperationInput {
+  ticker: string
+  operationType: TradeOperationType
+  date: string
+  volume: string
+  pricePerUnit: string
+}
+
+export interface StockPriceSuggestion {
+  ticker: string
+  currency: string
+  price: string
+  priceDate: string
+  requestedDate: string
+}

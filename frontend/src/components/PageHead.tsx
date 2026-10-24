@@ -4,6 +4,7 @@ import { Banknote, Landmark, Plus, TrendingUp } from 'lucide-react'
 import {
   AddCashOperationModal,
   AddDepositOperationModal,
+  AddStockOperationModal,
 } from '@/components/modals'
 import { Button } from '@/components/ui/button'
 import {
@@ -21,6 +22,7 @@ interface PageHeadProps {
 export const PageHead = ({ asOfDate, syncedMinutesAgo }: PageHeadProps) => {
   const [cashModalOpen, setCashModalOpen] = useState(false)
   const [depositModalOpen, setDepositModalOpen] = useState(false)
+  const [stockModalOpen, setStockModalOpen] = useState(false)
 
   return (
     <>
@@ -60,7 +62,10 @@ export const PageHead = ({ asOfDate, syncedMinutesAgo }: PageHeadProps) => {
               <Landmark size={15} />
               Lokata
             </DropdownMenuItem>
-            <DropdownMenuItem className="cursor-pointer gap-2 text-brand-ink focus:bg-brand focus:text-primary-foreground">
+            <DropdownMenuItem
+              className="cursor-pointer gap-2 text-brand-ink focus:bg-brand focus:text-primary-foreground"
+              onSelect={() => setStockModalOpen(true)}
+            >
               <TrendingUp size={15} />
               Akcje
             </DropdownMenuItem>
@@ -75,6 +80,10 @@ export const PageHead = ({ asOfDate, syncedMinutesAgo }: PageHeadProps) => {
       <AddDepositOperationModal
         open={depositModalOpen}
         onOpenChange={setDepositModalOpen}
+      />
+      <AddStockOperationModal
+        open={stockModalOpen}
+        onOpenChange={setStockModalOpen}
       />
     </>
   )

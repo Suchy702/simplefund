@@ -35,7 +35,7 @@ export async function apiRequest<T>(
         : typeof detail === 'string'
           ? detail
           : response.status === 422
-            ? 'Sprawdź kwotę, walutę i datę operacji.'
+            ? 'Sprawdź wartości, precyzję liczb, walutę i datę operacji.'
             : 'Nie udało się pobrać lub zapisać danych.'
     )
   }

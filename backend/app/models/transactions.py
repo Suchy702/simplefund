@@ -43,7 +43,9 @@ class StockTransaction(Base):
     transaction_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("transactions.id"), primary_key=True
     )
-    stock_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("stocks.id"), nullable=False)
+    stock_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("stocks.id"), nullable=False, index=True
+    )
     volume: Mapped[Decimal] = mapped_column(Numeric(18, 8), nullable=False)
     price_per_unit: Mapped[Decimal] = mapped_column(Numeric(18, 4), nullable=False)
 

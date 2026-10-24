@@ -113,7 +113,7 @@ export const AddDepositOperationModal = ({
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Dodaj lokatę</DialogTitle>
+          <DialogTitle>Dodaj operację — Lokaty</DialogTitle>
         </DialogHeader>
 
         <form

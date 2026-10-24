@@ -10,6 +10,9 @@ import type {
   PortfolioDashboard,
   PortfolioStatistics,
   RangeKey,
+  StockInstrument,
+  StockOperationInput,
+  StockPriceSuggestion,
 } from '@/types/portfolio'
 
 export const usePortfolioStatistics = (range: RangeKey) => {
@@ -52,6 +55,77 @@ const usePortfolioDashboard = () => {
         signal,
       }),
     enabled: Boolean(userId),
+  })
+}
+
+export const useHeldStocks = (enabled: boolean) => {
+  const { data: session } = useSession()
+  const userId = session?.user.id
+  return useQuery({
+    queryKey: ['portfolio', userId, 'held-stocks'],
+    queryFn: ({ signal }) =>
+      apiRequest<StockInstrument[]>('/stocks/held', userId!, { signal }),
+    enabled: enabled && Boolean(userId),
+  })
+}
+
+export const useStockSearch = (query: string, enabled: boolean) => {
+  const { data: session } = useSession()
+  const userId = session?.user.id
+  return useQuery({
+    queryKey: ['stock-search', userId, query],
+    queryFn: ({ signal }) =>
+      apiRequest<StockInstrument[]>(
+        `/stocks/search?q=${encodeURIComponent(query)}`,
+        userId!,
+        { signal }
+      ),
+    enabled: enabled && Boolean(userId) && query.length > 0,
+    staleTime: 60_000,
+    retry: false,
+  })
+}
+
+export const useStockPriceSuggestion = (
+  ticker: string,
+  date: string,
+  currency: string,
+  enabled: boolean
+) => {
+  const { data: session } = useSession()
+  const userId = session?.user.id
+  return useQuery({
+    queryKey: ['stock-price', userId, ticker, date, currency],
+    queryFn: ({ signal }) => {
+      const params = new URLSearchParams({ ticker, date, currency })
+      return apiRequest<StockPriceSuggestion>(
+        `/stocks/price?${params}`,
+        userId!,
+        { signal }
+      )
+    },
+    enabled: enabled && Boolean(userId) && Boolean(ticker && currency && date),
+    staleTime: 15 * 60_000,
+    retry: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+  })
+}
+
+export const useAddStockOperation = () => {
+  const queryClient = useQueryClient()
+  const { data: session } = useSession()
+  const userId = session?.user.id
+  return useMutation({
+    mutationFn: (data: StockOperationInput) => {
+      if (!userId) throw new Error('Zaloguj się ponownie.')
+      return apiRequest<Operation>('/transactions/stocks', userId, {
+        method: 'POST',
+        body: JSON.stringify(data),
+      })
+    },
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: ['portfolio', userId] }),
   })
 }
 

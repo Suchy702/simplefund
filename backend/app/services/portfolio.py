@@ -22,6 +22,7 @@ from app.repositories.portfolio import (
     stock_prices,
     transaction_rows,
 )
+from app.repositories.stocks import validate_stock_position
 from app.schemas.portfolio import (
     AllocationSegment,
     CashOperationCreate,
@@ -236,6 +237,13 @@ def delete_operation(db: Session, user_id: UUID, transaction_id: UUID) -> None:
         )
         if transaction is None:
             raise HTTPException(404, "Nie znaleziono transakcji")
+        if transaction.asset_type == AssetType.stock:
+            trade = db.get(StockTransaction, transaction.id)
+            if trade is not None:
+                stock_id = trade.stock_id
+                db.delete(trade)
+                db.flush()
+                validate_stock_position(db, user_id, stock_id)
         if transaction.asset_type == AssetType.cash:
             rows = db.execute(
                 select(Transaction.date, Transaction.type, CashTransaction.value)
@@ -350,7 +358,7 @@ def holdings_from_rows(rows, rates, market, manual, on: date) -> list[Holding]:
                 value=None,
                 change=None,
                 change_pct=None,
-                color="var(--cat-3)",
+                color=ALLOCATION_CLASSES.get(operation.kind, "var(--cat-4)"),
             )
         position = positions[key]
         fx = exchange_rate_on(rates, transaction.currency, transaction.date)

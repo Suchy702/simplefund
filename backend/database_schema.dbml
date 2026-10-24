@@ -52,6 +52,8 @@ Table stocks {
   id uuid [pk, default: `gen_random_uuid()`]
   ticker varchar [not null, unique]
   name varchar [not null]
+  exchange varchar
+  quote_type varchar
   currency currency [not null]
   manual_price_only boolean [default: false]
   created_at timestamptz [default: `now()`]
@@ -88,6 +90,10 @@ Table stock_transactions {
   stock_id uuid [not null, ref: > stocks.id]
   volume decimal(18,8) [not null]
   price_per_unit decimal(18,4) [not null]
+
+  indexes {
+    stock_id [name: 'ix_stock_transactions_stock_id']
+  }
 }
 
 Table deposit_transactions {

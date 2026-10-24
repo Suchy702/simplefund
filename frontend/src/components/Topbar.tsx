@@ -31,9 +31,6 @@ export const Topbar = ({
   return (
     <header className="flex items-center justify-between border-b border-border bg-card px-8 py-3.5 shrink-0">
       <div className="flex items-center gap-2.5 text-lg font-semibold tracking-tight text-foreground">
-        <span className="grid h-5.5 w-5.5 place-items-center rounded-sm bg-brand text-13 font-bold text-primary-foreground">
-          S
-        </span>
         <span>SimpleFund</span>
       </div>
 
