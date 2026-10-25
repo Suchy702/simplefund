@@ -3,6 +3,7 @@ import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { format } from 'date-fns'
+import { Bitcoin, TrendingUp } from 'lucide-react'
 
 import {
   useAddStockOperation,
@@ -48,25 +49,35 @@ const instrumentDetails = (instrument: StockInstrument) =>
     instrument.currency ?? 'Waluta niedostępna',
     instrument.quoteType === 'EQUITY'
       ? 'Akcja'
-      : (instrument.quoteType ?? 'Typ niedostępny'),
+      : instrument.quoteType === 'CRYPTOCURRENCY'
+        ? 'Kryptowaluta'
+        : (instrument.quoteType ?? 'Typ niedostępny'),
   ].join(' · ')
 
 interface AddStockOperationModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
+  assetType?: 'stocks' | 'crypto'
 }
 
 export const AddStockOperationModal = ({
   open,
   onOpenChange,
+  assetType = 'stocks',
 }: AddStockOperationModalProps) => {
+  const isCrypto = assetType === 'crypto'
+  const Icon = isCrypto ? Bitcoin : TrendingUp
   const [query, setQuery] = useState('')
   const [debouncedQuery, setDebouncedQuery] = useState('')
   const [selected, setSelected] = useState<StockInstrument | null>(null)
   const priceEditedManually = useRef(false)
-  const mutation = useAddStockOperation()
-  const held = useHeldStocks(open)
-  const search = useStockSearch(debouncedQuery, open && selected === null)
+  const mutation = useAddStockOperation(assetType)
+  const held = useHeldStocks(open, assetType)
+  const search = useStockSearch(
+    debouncedQuery,
+    open && selected === null,
+    assetType
+  )
   const {
     register,
     handleSubmit,
@@ -84,7 +95,8 @@ export const AddStockOperationModal = ({
     selected?.ticker ?? '',
     transactionDate,
     selected?.currency ?? '',
-    open && selected !== null
+    open && selected !== null,
+    assetType
   )
 
   useEffect(() => {
@@ -130,10 +142,7 @@ export const AddStockOperationModal = ({
   }
 
   const renderInstruments = (instruments: StockInstrument[]) => (
-    <ul
-      className="max-h-52 space-y-1 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-      aria-label="Instrumenty"
-    >
+    <ul className="space-y-1" aria-label="Instrumenty">
       {instruments.map((instrument) => (
         <li key={instrument.ticker}>
           <button
@@ -172,7 +181,10 @@ export const AddStockOperationModal = ({
         aria-describedby={undefined}
       >
         <DialogHeader>
-          <DialogTitle>Dodaj operację — Akcje i ETF-y</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            <Icon size={20} className="shrink-0" aria-hidden="true" />
+            {isCrypto ? 'Kryptowaluty' : 'Akcje i ETF-y'}
+          </DialogTitle>
         </DialogHeader>
         <form
           onSubmit={handleSubmit(onSubmit)}
@@ -181,7 +193,10 @@ export const AddStockOperationModal = ({
           <fieldset disabled={mutation.isPending} className="contents">
             <input type="hidden" {...register('ticker')} />
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="stock-search" className="text-13 font-medium">
+              <label
+                htmlFor={`${assetType}-search`}
+                className="text-13 font-medium"
+              >
                 Instrument
               </label>
               {selected ? (
@@ -209,14 +224,22 @@ export const AddStockOperationModal = ({
               ) : (
                 <>
                   <Input
-                    id="stock-search"
+                    id={`${assetType}-search`}
                     value={query}
                     maxLength={100}
                     onChange={(event) => setQuery(event.target.value)}
-                    placeholder="Wpisz nazwę lub ticker, np. Żabka lub ZAB.WA"
+                    placeholder={
+                      isCrypto
+                        ? 'Wpisz nazwę lub ticker, np. Bitcoin lub BTC-USD'
+                        : 'Wpisz nazwę lub ticker, np. Żabka lub ZAB.WA'
+                    }
                     autoComplete="off"
                   />
-                  <div aria-live="polite" aria-busy={searching && waiting}>
+                  <div
+                    className={`${isCrypto ? 'h-48' : 'h-60'} shrink-0 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden`}
+                    aria-live="polite"
+                    aria-busy={searching && waiting}
+                  >
                     {searching ? (
                       waiting ? (
                         <p className="text-12 text-ink-3">Wyszukiwanie…</p>
@@ -269,7 +292,10 @@ export const AddStockOperationModal = ({
               )}
             </div>
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="stock-date" className="text-13 font-medium">
+              <label
+                htmlFor={`${assetType}-date`}
+                className="text-13 font-medium"
+              >
                 Data transakcji
               </label>
               <Controller
@@ -284,7 +310,7 @@ export const AddStockOperationModal = ({
                       setValue('pricePerUnit', '')
                       field.onChange(value)
                     }}
-                    id="stock-date"
+                    id={`${assetType}-date`}
                     max={format(new Date(), 'yyyy-MM-dd')}
                     disabled={mutation.isPending || selected === null}
                     invalid={Boolean(errors.date)}
@@ -309,7 +335,7 @@ export const AddStockOperationModal = ({
               )}
             />
             <FloatInput
-              id="stock-volume"
+              id={`${assetType}-volume`}
               label="Liczba jednostek"
               min="0.00000001"
               step="0.00000001"
@@ -318,14 +344,14 @@ export const AddStockOperationModal = ({
             />
             <div className="flex flex-col gap-1.5">
               <FloatInput
-                id="stock-price"
+                id={`${assetType}-price`}
                 label={
                   selected?.currency
                     ? `Cena jednostkowa (${selected.currency})`
                     : 'Cena jednostkowa'
                 }
-                min="0.0001"
-                step="0.0001"
+                min={isCrypto ? '0.000000000001' : '0.0001'}
+                step={isCrypto ? '0.000000000001' : '0.0001'}
                 error={errors.pricePerUnit?.message}
                 {...register('pricePerUnit', {
                   onChange: () => {

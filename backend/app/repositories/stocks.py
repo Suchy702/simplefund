@@ -7,7 +7,7 @@ from sqlalchemy import case, func, select
 from sqlalchemy.orm import Session
 
 from app.models import Stock, StockTransaction, Transaction
-from app.models.enums import TransactionType
+from app.models.enums import Currency, TransactionType
 
 
 def held_stocks(db: Session, user_id: UUID) -> list[Stock]:
@@ -28,14 +28,19 @@ def held_stocks(db: Session, user_id: UUID) -> list[Stock]:
     )
 
 
-def validate_stock_position(db: Session, user_id: UUID, stock_id: UUID) -> None:
+def validate_stock_position(
+    db: Session, user_id: UUID, stock_id: UUID, currency: Currency | None = None
+) -> None:
     """Check the complete ledger, including later sales after a backdated edit."""
-    rows = db.execute(
+    statement = (
         select(Transaction.type, StockTransaction.volume)
         .join(StockTransaction, StockTransaction.transaction_id == Transaction.id)
         .where(Transaction.user_id == user_id, StockTransaction.stock_id == stock_id)
         .order_by(Transaction.date, Transaction.created_at, Transaction.id)
     )
+    if currency is not None:
+        statement = statement.where(Transaction.currency == currency)
+    rows = db.execute(statement)
     quantity = Decimal(0)
     for operation_type, volume in rows:
         quantity += volume if operation_type == TransactionType.buy else -volume

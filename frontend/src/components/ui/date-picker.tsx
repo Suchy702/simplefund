@@ -26,6 +26,8 @@ export const DatePicker = forwardRef<HTMLButtonElement, DatePickerProps>(
   ({ id, value, onChange, onBlur, max, disabled, invalid }, ref) => {
     const [open, setOpen] = useState(false)
     const selected = value ? parseISO(value) : undefined
+    const currentYear = new Date().getFullYear()
+    const selectedYear = selected?.getFullYear() ?? currentYear
 
     return (
       <Popover open={open} onOpenChange={setOpen}>
@@ -54,6 +56,16 @@ export const DatePicker = forwardRef<HTMLButtonElement, DatePickerProps>(
             locale={pl}
             selected={selected}
             defaultMonth={selected}
+            startMonth={new Date(Math.min(currentYear - 100, selectedYear), 0)}
+            endMonth={
+              max
+                ? parseISO(max)
+                : new Date(Math.max(currentYear + 100, selectedYear), 11)
+            }
+            formatters={{
+              formatMonthDropdown: (date) => format(date, 'LLLL', { locale: pl }),
+            }}
+            labels={{ labelYearDropdown: () => 'Wybierz rok' }}
             className="w-[248px]"
             classNames={{
               weeks:

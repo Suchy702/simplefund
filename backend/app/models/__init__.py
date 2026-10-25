@@ -1,6 +1,8 @@
 from app.models.base import Base as Base
 from app.models.bond_series import BondSeries as BondSeries
 from app.models.exchange_rates import ExchangeRate as ExchangeRate
+from app.models.polish_macro import NbpReferenceRate as NbpReferenceRate
+from app.models.polish_macro import PolishInflation as PolishInflation
 from app.models.prices import AssetPrice as AssetPrice
 from app.models.prices import ManualPrice as ManualPrice
 from app.models.profiles import Profile as Profile
@@ -20,3 +22,6 @@ from app.models.transactions import (
 from app.models.transactions import (
     Transaction as Transaction,
 )
+from app.models.xtb import XtbEvent as XtbEvent
+from app.models.xtb import XtbImport as XtbImport
+from app.models.xtb import XtbMapping as XtbMapping

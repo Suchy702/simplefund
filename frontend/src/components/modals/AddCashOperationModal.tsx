@@ -7,6 +7,7 @@ import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { format } from 'date-fns'
+import { Banknote } from 'lucide-react'
 import { useAddCashOperation } from '@/api/portfolio'
 
 import { Button } from '@/components/ui/button'
@@ -105,7 +106,10 @@ export const AddCashOperationModal = ({
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Dodaj operację — Gotówka</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            <Banknote size={20} className="shrink-0" aria-hidden="true" />
+            Gotówka
+          </DialogTitle>
         </DialogHeader>
 
         <form

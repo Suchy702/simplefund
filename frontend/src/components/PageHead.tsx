@@ -1,12 +1,24 @@
 import { useState } from 'react'
-import { Banknote, Landmark, Plus, TrendingUp } from 'lucide-react'
+import {
+  Banknote,
+  Bitcoin,
+  Download,
+  Gem,
+  Landmark,
+  Plus,
+  TrendingUp,
+} from 'lucide-react'
 
 import {
   AddCashOperationModal,
   AddDepositOperationModal,
   AddStockOperationModal,
+  AddMetalOperationModal,
+  AddBondOperationModal,
 } from '@/components/modals'
 import { Button } from '@/components/ui/button'
+import { PolishEagleIcon } from '@/components/PolishEagleIcon'
+import { ImportXtbModal } from '@/components/modals/ImportXtbModal'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,6 +35,10 @@ export const PageHead = ({ asOfDate, syncedMinutesAgo }: PageHeadProps) => {
   const [cashModalOpen, setCashModalOpen] = useState(false)
   const [depositModalOpen, setDepositModalOpen] = useState(false)
   const [stockModalOpen, setStockModalOpen] = useState(false)
+  const [cryptoModalOpen, setCryptoModalOpen] = useState(false)
+  const [metalModalOpen, setMetalModalOpen] = useState(false)
+  const [xtbModalOpen, setXtbModalOpen] = useState(false)
+  const [bondModalOpen, setBondModalOpen] = useState(false)
 
   return (
     <>
@@ -37,42 +53,78 @@ export const PageHead = ({ asOfDate, syncedMinutesAgo }: PageHeadProps) => {
               ` · ostatnia synchronizacja ${syncedMinutesAgo} min temu`}
           </div>
         </div>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="brand" size="lg">
-              <Plus size={14} />
-              Nowa operacja
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent
-            align="end"
-            className="dropdown-slide w-[var(--radix-dropdown-menu-trigger-width)] overflow-hidden border-brand bg-brand-soft p-1"
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="default"
+            onClick={() => setXtbModalOpen(true)}
           >
-            <DropdownMenuItem
-              className="cursor-pointer gap-2 text-brand-ink focus:bg-brand focus:text-primary-foreground"
-              onSelect={() => setCashModalOpen(true)}
+            <Download size={14} />
+            Importuj z XTB
+          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="brand" size="lg">
+                <Plus size={14} />
+                Nowa operacja
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              align="end"
+              className="dropdown-slide w-[var(--radix-dropdown-menu-trigger-width)] overflow-hidden border-brand bg-brand-soft p-1"
             >
-              <Banknote size={15} />
-              Gotówka
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              className="cursor-pointer gap-2 text-brand-ink focus:bg-brand focus:text-primary-foreground"
-              onSelect={() => setDepositModalOpen(true)}
-            >
-              <Landmark size={15} />
-              Lokata
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              className="cursor-pointer gap-2 text-brand-ink focus:bg-brand focus:text-primary-foreground"
-              onSelect={() => setStockModalOpen(true)}
-            >
-              <TrendingUp size={15} />
-              Akcje
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+              <DropdownMenuItem
+                className="cursor-pointer gap-2 text-brand-ink focus:bg-brand focus:text-primary-foreground"
+                onSelect={() => setCashModalOpen(true)}
+              >
+                <Banknote size={15} />
+                Gotówka
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="cursor-pointer gap-2 text-brand-ink focus:bg-brand focus:text-primary-foreground"
+                onSelect={() => setDepositModalOpen(true)}
+              >
+                <Landmark size={15} />
+                Lokata
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="cursor-pointer gap-2 text-brand-ink focus:bg-brand focus:text-primary-foreground"
+                onSelect={() => setBondModalOpen(true)}
+              >
+                <PolishEagleIcon size={16} />
+                Obligacje skarbowe
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="cursor-pointer gap-2 text-brand-ink focus:bg-brand focus:text-primary-foreground"
+                onSelect={() => setStockModalOpen(true)}
+              >
+                <TrendingUp size={15} />
+                Akcje
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="cursor-pointer gap-2 text-brand-ink focus:bg-brand focus:text-primary-foreground"
+                onSelect={() => setCryptoModalOpen(true)}
+              >
+                <Bitcoin size={15} />
+                Kryptowaluty
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="cursor-pointer gap-2 text-brand-ink focus:bg-brand focus:text-primary-foreground"
+                onSelect={() => setMetalModalOpen(true)}
+              >
+                <Gem size={15} />
+                Kruszce
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
 
+      {xtbModalOpen && <ImportXtbModal onOpenChange={setXtbModalOpen} />}
+      <AddBondOperationModal
+        open={bondModalOpen}
+        onOpenChange={setBondModalOpen}
+      />
       <AddCashOperationModal
         open={cashModalOpen}
         onOpenChange={setCashModalOpen}
@@ -84,6 +136,15 @@ export const PageHead = ({ asOfDate, syncedMinutesAgo }: PageHeadProps) => {
       <AddStockOperationModal
         open={stockModalOpen}
         onOpenChange={setStockModalOpen}
+      />
+      <AddMetalOperationModal
+        open={metalModalOpen}
+        onOpenChange={setMetalModalOpen}
+      />
+      <AddStockOperationModal
+        assetType="crypto"
+        open={cryptoModalOpen}
+        onOpenChange={setCryptoModalOpen}
       />
     </>
   )

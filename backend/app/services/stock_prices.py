@@ -15,6 +15,7 @@ from app.repositories.portfolio import exchange_rates
 from app.repositories.stocks import held_stocks
 from app.services.exchange_rates import ExchangeRateHistory
 from app.services.frankfurter import fetch_rates, store_rates
+from app.services.metal_prices import metal_snapshot
 from app.services.yahoo import MarketSnapshot, market_snapshot
 
 logger = logging.getLogger(__name__)
@@ -78,7 +79,9 @@ def refresh_user_prices(user_id: UUID) -> None:
                     select(Transaction.currency, Transaction.date)
                     .where(
                         Transaction.user_id == user_id,
-                        Transaction.asset_type == AssetType.stock,
+                        Transaction.asset_type.in_(
+                            [AssetType.stock, AssetType.metal, AssetType.crypto]
+                        ),
                     )
                     .distinct()
                 ).tuples()
@@ -89,7 +92,11 @@ def refresh_user_prices(user_id: UUID) -> None:
                 for currency, on in historical
                 if existing_rates.on(currency, on)[0] is None
             ]
-        requests = missing + [(stock.currency, date.today()) for stock in stocks]
+        requests = (
+            missing
+            + [(currency, date.today()) for currency, _ in historical]
+            + [(stock.currency, date.today()) for stock in stocks]
+        )
         observations = fetch_rates(requests)
         with SessionLocal.begin() as db:
             store_rates(db, observations)
@@ -97,7 +104,11 @@ def refresh_user_prices(user_id: UUID) -> None:
         for stock in stocks:
             try:
                 # No database transaction is held while contacting Yahoo.
-                snapshot = market_snapshot(stock.ticker)
+                snapshot = (
+                    metal_snapshot(stock.ticker)
+                    if stock.quote_type == "METAL"
+                    else market_snapshot(stock.ticker)
+                )
                 with SessionLocal.begin() as db:
                     store_snapshot(db, stock, snapshot)
             except Exception:

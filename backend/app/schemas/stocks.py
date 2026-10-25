@@ -41,3 +41,7 @@ class StockOperationCreate(BaseModel):
         if value > Date.today():
             raise ValueError("Data operacji nie może być w przyszłości")
         return value
+
+
+class CryptoOperationCreate(StockOperationCreate):
+    price_per_unit: Decimal = Field(gt=0, max_digits=26, decimal_places=12)

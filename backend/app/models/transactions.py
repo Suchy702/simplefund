@@ -3,6 +3,7 @@ import uuid
 from decimal import Decimal
 
 from sqlalchemy import (
+    Boolean,
     CheckConstraint,
     Date,
     DateTime,
@@ -12,6 +13,7 @@ from sqlalchemy import (
     Integer,
     Numeric,
     String,
+    UniqueConstraint,
 )
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -21,7 +23,12 @@ from app.models.enums import AssetType, Currency, TransactionType
 
 class Transaction(Base):
     __tablename__ = "transactions"
-    __table_args__ = (Index("ix_transactions_user_date", "user_id", "date"),)
+    __table_args__ = (
+        Index("ix_transactions_user_date", "user_id", "date"),
+        UniqueConstraint(
+            "user_id", "external_id", name="uq_transactions_user_external"
+        ),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     user_id: Mapped[uuid.UUID] = mapped_column(
@@ -32,6 +39,13 @@ class Transaction(Base):
     date: Mapped[datetime.date] = mapped_column(Date, nullable=False)
     currency: Mapped[Currency] = mapped_column(Enum(Currency), nullable=False)
     external_id: Mapped[str | None] = mapped_column(String, nullable=True)
+    xtb_import_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("xtb_imports.id"), index=True
+    )
+    external_flow: Mapped[bool] = mapped_column(
+        Boolean, default=True, server_default="true"
+    )
+    source_label: Mapped[str | None] = mapped_column(String(100), nullable=True)
     created_at: Mapped[datetime.datetime] = mapped_column(
         DateTime(timezone=True), default=datetime.datetime.now
     )
@@ -47,7 +61,9 @@ class StockTransaction(Base):
         ForeignKey("stocks.id"), nullable=False, index=True
     )
     volume: Mapped[Decimal] = mapped_column(Numeric(18, 8), nullable=False)
-    price_per_unit: Mapped[Decimal] = mapped_column(Numeric(18, 4), nullable=False)
+    price_per_unit: Mapped[Decimal] = mapped_column(Numeric(26, 12), nullable=False)
+    # Imported execution totals are authoritative; rounded unit prices can differ.
+    total_value: Mapped[Decimal | None] = mapped_column(Numeric(18, 2), nullable=True)
 
 
 class DepositTransaction(Base):

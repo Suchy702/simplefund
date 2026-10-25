@@ -3,8 +3,13 @@ import { useSession } from '@/api/auth'
 import { apiRequest } from '@/api/client'
 import { generateSeries, MOCK_PERFORMANCE } from '@/mocks/portfolio'
 import type {
+  BondFamily,
+  BondOperationInput,
+  BondSeriesOption,
   CashOperationInput,
   DepositOperationInput,
+  MetalInstrument,
+  MetalOperationInput,
   Operation,
   PortfolioPoint,
   PortfolioDashboard,
@@ -14,6 +19,45 @@ import type {
   StockOperationInput,
   StockPriceSuggestion,
 } from '@/types/portfolio'
+
+export const useBondSeries = (
+  date: string,
+  family: BondFamily,
+  enabled: boolean
+) => {
+  const { data: session } = useSession()
+  const userId = session?.user.id
+  return useQuery({
+    queryKey: ['bond-series', userId, date, family],
+    queryFn: ({ signal }) => {
+      const params = new URLSearchParams({ date, family })
+      return apiRequest<BondSeriesOption[]>(
+        `/bonds/series?${params}`,
+        userId!,
+        { signal }
+      )
+    },
+    enabled: enabled && Boolean(userId) && Boolean(date),
+    staleTime: 5 * 60_000,
+  })
+}
+
+export const useAddBondOperation = () => {
+  const queryClient = useQueryClient()
+  const { data: session } = useSession()
+  const userId = session?.user.id
+  return useMutation({
+    mutationFn: (data: BondOperationInput) => {
+      if (!userId) throw new Error('Zaloguj się ponownie.')
+      return apiRequest<Operation>('/transactions/bonds', userId, {
+        method: 'POST',
+        body: JSON.stringify(data),
+      })
+    },
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: ['portfolio', userId] }),
+  })
+}
 
 export const usePortfolioStatistics = (range: RangeKey) => {
   const { data: session } = useSession()
@@ -58,25 +102,61 @@ const usePortfolioDashboard = () => {
   })
 }
 
-export const useHeldStocks = (enabled: boolean) => {
+export const useMetals = (enabled: boolean) => {
   const { data: session } = useSession()
   const userId = session?.user.id
   return useQuery({
-    queryKey: ['portfolio', userId, 'held-stocks'],
+    queryKey: ['metals', userId],
     queryFn: ({ signal }) =>
-      apiRequest<StockInstrument[]>('/stocks/held', userId!, { signal }),
+      apiRequest<MetalInstrument[]>('/metals', userId!, { signal }),
+    enabled: enabled && Boolean(userId),
+    staleTime: Infinity,
+  })
+}
+
+export const useAddMetalOperation = () => {
+  const queryClient = useQueryClient()
+  const { data: session } = useSession()
+  const userId = session?.user.id
+  return useMutation({
+    mutationFn: (data: MetalOperationInput) => {
+      if (!userId) throw new Error('Zaloguj się ponownie.')
+      return apiRequest<Operation>('/transactions/metals', userId, {
+        method: 'POST',
+        body: JSON.stringify(data),
+      })
+    },
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: ['portfolio', userId] }),
+  })
+}
+
+export const useHeldStocks = (
+  enabled: boolean,
+  assetType: 'stocks' | 'crypto' = 'stocks'
+) => {
+  const { data: session } = useSession()
+  const userId = session?.user.id
+  return useQuery({
+    queryKey: ['portfolio', userId, 'held-stocks', assetType],
+    queryFn: ({ signal }) =>
+      apiRequest<StockInstrument[]>(`/${assetType}/held`, userId!, { signal }),
     enabled: enabled && Boolean(userId),
   })
 }
 
-export const useStockSearch = (query: string, enabled: boolean) => {
+export const useStockSearch = (
+  query: string,
+  enabled: boolean,
+  assetType: 'stocks' | 'crypto' = 'stocks'
+) => {
   const { data: session } = useSession()
   const userId = session?.user.id
   return useQuery({
-    queryKey: ['stock-search', userId, query],
+    queryKey: ['stock-search', userId, query, assetType],
     queryFn: ({ signal }) =>
       apiRequest<StockInstrument[]>(
-        `/stocks/search?q=${encodeURIComponent(query)}`,
+        `/${assetType}/search?q=${encodeURIComponent(query)}`,
         userId!,
         { signal }
       ),
@@ -90,16 +170,17 @@ export const useStockPriceSuggestion = (
   ticker: string,
   date: string,
   currency: string,
-  enabled: boolean
+  enabled: boolean,
+  assetType: 'stocks' | 'crypto' = 'stocks'
 ) => {
   const { data: session } = useSession()
   const userId = session?.user.id
   return useQuery({
-    queryKey: ['stock-price', userId, ticker, date, currency],
+    queryKey: ['stock-price', userId, ticker, date, currency, assetType],
     queryFn: ({ signal }) => {
       const params = new URLSearchParams({ ticker, date, currency })
       return apiRequest<StockPriceSuggestion>(
-        `/stocks/price?${params}`,
+        `/${assetType}/price?${params}`,
         userId!,
         { signal }
       )
@@ -112,14 +193,16 @@ export const useStockPriceSuggestion = (
   })
 }
 
-export const useAddStockOperation = () => {
+export const useAddStockOperation = (
+  assetType: 'stocks' | 'crypto' = 'stocks'
+) => {
   const queryClient = useQueryClient()
   const { data: session } = useSession()
   const userId = session?.user.id
   return useMutation({
     mutationFn: (data: StockOperationInput) => {
       if (!userId) throw new Error('Zaloguj się ponownie.')
-      return apiRequest<Operation>('/transactions/stocks', userId, {
+      return apiRequest<Operation>(`/transactions/${assetType}`, userId, {
         method: 'POST',
         body: JSON.stringify(data),
       })

@@ -3,18 +3,32 @@ import {
   CircleCheck,
   CircleX,
   Clock,
+  ExternalLink,
   Loader2,
   RefreshCw,
 } from 'lucide-react'
 
 import {
   useBackendConnections,
+  useCryptoConnection,
+  useExternalConnection,
   useStockConnection,
   useSupabaseConnection,
   type ConnectionCheck,
 } from '@/api/admin'
 import { Button } from '@/components/ui/button'
 import { Topbar } from '@/components/Topbar'
+
+const adminLinks = [
+  {
+    name: 'GitHub · SimpleFund',
+    href: 'https://github.com/Suchy702/simplefund/tree/master',
+  },
+  { name: 'SimpleFund', href: '/' },
+  { name: 'BuyCoffee.to', href: 'https://buycoffee.to/simplefund' },
+  { name: 'cron-job.org', href: 'https://console.cron-job.org/dashboard' },
+  { name: 'Trello', href: 'https://trello.com/b/z8WWXa4t/simplefund' },
+]
 
 interface ConnectionRowProps {
   name: string
@@ -122,6 +136,17 @@ const ConnectionRow = ({
             {result.response_time_ms != null &&
               ` · Czas odpowiedzi: ${result.response_time_ms} ms`}
           </p>
+          {result.source_url && (
+            <a
+              href={result.source_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-2 inline-flex items-center gap-1 text-13 text-muted-foreground underline underline-offset-4"
+            >
+              Otwórz źródło
+              <ExternalLink size={13} aria-hidden="true" />
+            </a>
+          )}
         </>
       )}
     </div>
@@ -132,8 +157,36 @@ const AdminPage = ({ onBack }: { onBack: () => void }) => {
   const database = useSupabaseConnection(true)
   const backend = useBackendConnections(true)
   const stocks = useStockConnection(true)
+  const crypto = useCryptoConnection(true)
+  const bonds = useExternalConnection('bonds', true)
+  const nbp = useExternalConnection('nbp', true)
+  const gus = useExternalConnection('gus', true)
+  const sources = [
+    {
+      name: 'Obligacje skarbowe',
+      description:
+        'obligacjeskarbowe.pl · dostępność serwisu obligacji skarbowych.',
+      query: bonds,
+    },
+    {
+      name: 'Stopy procentowe · NBP',
+      description:
+        'nbp.pl · dostępność strony podstawowych stóp procentowych NBP.',
+      query: nbp,
+    },
+    {
+      name: 'Inflacja · GUS',
+      description:
+        'stat.gov.pl · dostępność strony miesięcznych wskaźników cen konsumpcyjnych.',
+      query: gus,
+    },
+  ]
   const checking =
-    database.isFetching || backend.isFetching || stocks.isFetching
+    database.isFetching ||
+    backend.isFetching ||
+    stocks.isFetching ||
+    crypto.isFetching ||
+    sources.some(({ query }) => query.isFetching)
 
   return (
     <div className="flex h-full flex-col overflow-hidden bg-background text-foreground">
@@ -151,6 +204,22 @@ const AdminPage = ({ onBack }: { onBack: () => void }) => {
             Diagnostyka usług używanych przez SimpleFund.
           </p>
 
+          <section aria-labelledby="links-heading" className="mb-8 max-w-3xl">
+            <h2 id="links-heading" className="mb-4 text-base font-semibold">
+              Przydatne linki
+            </h2>
+            <div className="flex flex-wrap gap-2">
+              {adminLinks.map(({ name, href }) => (
+                <Button key={name} variant="outline" size="sm" asChild>
+                  <a href={href} target="_blank" rel="noopener noreferrer">
+                    {name}
+                    <ExternalLink size={14} aria-hidden="true" />
+                  </a>
+                </Button>
+              ))}
+            </div>
+          </section>
+
           <section aria-labelledby="connection-heading" className="max-w-3xl">
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
               <h2 id="connection-heading" className="text-base font-semibold">
@@ -163,6 +232,10 @@ const AdminPage = ({ onBack }: { onBack: () => void }) => {
                   void database.refetch()
                   void backend.refetch()
                   void stocks.refetch()
+                  void crypto.refetch()
+                  sources.forEach(({ query }) => {
+                    void query.refetch()
+                  })
                 }}
               >
                 <RefreshCw
@@ -204,7 +277,28 @@ const AdminPage = ({ onBack }: { onBack: () => void }) => {
                 loading={stocks.isFetching}
                 error={stocks.isError ? stocks.error.message : undefined}
               />
+              <ConnectionRow
+                name="Kryptowaluty · yfinance"
+                description="Yahoo Finance · dzienne ceny kryptowalut i historia. Test zamkniętego notowania Bitcoin (BTC-USD)."
+                result={crypto.isError ? undefined : crypto.data}
+                loading={crypto.isFetching}
+                error={crypto.isError ? crypto.error.message : undefined}
+              />
+              {sources.map(({ name, description, query }) => (
+                <ConnectionRow
+                  key={name}
+                  name={name}
+                  description={description}
+                  result={query.isError ? undefined : query.data}
+                  loading={query.isFetching}
+                  error={query.isError ? query.error.message : undefined}
+                />
+              ))}
             </div>
+            <p className="mt-3 text-13 text-muted-foreground">
+              Kontrole obligacji, NBP i GUS sprawdzają odpowiedź HTTP serwisu,
+              bez weryfikacji aktualności publikowanych danych.
+            </p>
             <a
               href="https://frankfurter.dev/"
               target="_blank"

@@ -72,25 +72,50 @@ export const HoldingsTable = () => {
                           <div className="font-medium text-foreground">
                             {h.ticker}
                           </div>
-                          <div className="text-tiny text-ink-3">{h.name}</div>
+                          <div
+                            className="max-w-[180px] truncate text-tiny text-ink-3"
+                            title={h.name}
+                          >
+                            {h.name}
+                          </div>
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell className="text-right font-mono tabular">
-                      {fmtNumber(h.qty)}
-                      {h.class === 'Gotówka' || h.class === 'Lokata'
-                        ? ` ${h.currency}`
-                        : ''}
-                    </TableCell>
                     <TableCell className="text-right">
-                      {h.price !== null ? (
+                      <div className="flex items-center justify-end gap-1">
+                        <span className="font-mono tabular">
+                          {fmtNumber(h.qty, h.class === 'Kryptowaluty' ? 8 : 2)}
+                        </span>
+                        {h.quantityUnit && (
+                          <span className="font-mono text-tiny text-ink-3">
+                            {h.quantityUnit}
+                          </span>
+                        )}
+                        {(h.class === 'Gotówka' || h.class === 'Lokata') && (
+                          <span className="font-mono text-tiny text-ink-3">
+                            {h.currency}
+                          </span>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell
+                      className="text-right"
+                      title={h.valuationNote ?? undefined}
+                    >
+                      {h.class === 'Obligacje skarbowe' ? (
+                        <span className="text-ink-4">—</span>
+                      ) : h.price !== null ? (
                         <div className="flex flex-col items-end">
                           <div className="flex items-center gap-1">
                             <span className="font-mono tabular">
-                              {fmtNumber(h.price)}
+                              {fmtNumber(
+                                h.price,
+                                h.class === 'Kryptowaluty' ? 12 : 2
+                              )}
                             </span>
                             <span className="font-mono text-tiny text-ink-3">
                               {h.priceCurrency ?? h.currency}
+                              {h.quantityUnit ? `/${h.quantityUnit}` : ''}
                             </span>
                           </div>
                         </div>
@@ -101,8 +126,18 @@ export const HoldingsTable = () => {
                     <TableCell className="text-right font-mono tabular">
                       {numberOrDash(h.cost)}
                     </TableCell>
-                    <TableCell className="text-right font-mono tabular font-medium">
+                    <TableCell
+                      className="text-right font-mono tabular font-medium"
+                      title={h.valuationNote ?? undefined}
+                    >
                       {numberOrDash(h.value)}
+                      {h.value === null &&
+                        h.class === 'Obligacje skarbowe' &&
+                        h.valuationNote && (
+                          <div className="max-w-48 text-tiny font-normal text-ink-3">
+                            {h.valuationNote}
+                          </div>
+                        )}
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex flex-col items-end">
@@ -119,6 +154,14 @@ export const HoldingsTable = () => {
                         </span>
                         {h.changePct !== null && (
                           <DeltaPill value={h.changePct} className="mt-0.5" />
+                        )}
+                        {h.paidInterest != null && h.paidInterest > 0 && (
+                          <span
+                            className="text-tiny text-ink-3"
+                            title="Kupony brutto wypłacone według harmonogramu, uwzględnione w bilansie."
+                          >
+                            Wypłacono: {fmtNumber(h.paidInterest)} PLN
+                          </span>
                         )}
                       </div>
                     </TableCell>

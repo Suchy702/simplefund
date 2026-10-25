@@ -3,6 +3,8 @@ import enum
 
 class AssetType(enum.Enum):
     stock = "stock"
+    crypto = "crypto"
+    metal = "metal"
     deposit = "deposit"
     bond = "bond"
     cash = "cash"

@@ -4,6 +4,8 @@
 
 Enum asset_type {
   stock    // stocks, ETFs, precious metals, crypto
+  metal
+  crypto
   deposit  // term deposit
   bond     // Polish treasury bonds
   cash     // cash deposit
@@ -48,6 +50,41 @@ Table profiles {
 // REFERENCE TABLES
 // =============================================
 
+Table xtb_mappings {
+  user_id uuid [not null, ref: > profiles.id]
+  source_ticker varchar(64) [not null]
+  choice jsonb [not null]
+
+  indexes {
+    (user_id, source_ticker) [pk]
+  }
+}
+
+Table xtb_imports {
+  id uuid [pk]
+  user_id uuid [not null, ref: > profiles.id]
+  expires_at timestamptz [not null]
+  committed_at timestamptz [note: 'Committed previews are retained as history groups']
+  payload jsonb [not null]
+
+  indexes {
+    user_id [name: 'ix_xtb_imports_user_id']
+  }
+}
+
+Table xtb_events {
+  user_id uuid [not null, ref: > profiles.id]
+  external_id varchar(160) [not null]
+  fingerprint varchar(64) [not null]
+  xtb_import_id uuid [ref: > xtb_imports.id]
+  payload jsonb [not null]
+
+  indexes {
+    (user_id, external_id) [pk]
+    xtb_import_id [name: 'ix_xtb_events_xtb_import_id']
+  }
+}
+
 Table stocks {
   id uuid [pk, default: `gen_random_uuid()`]
   ticker varchar [not null, unique]
@@ -63,6 +100,19 @@ Table bond_series {
   series_code varchar [pk]
   interest_type interest_type [not null]
   annual_rate decimal(5,2) []
+  family varchar
+  sale_start date
+  sale_end date
+  term_months integer
+  fixed_rate_pct decimal(7,4)
+  first_period_rate_pct decimal(7,4)
+  inflation_margin_pp decimal(7,4)
+  nbp_margin_pp decimal(7,4)
+  capitalization varchar
+  interest_payment varchar
+  source_url varchar
+  issue_letter_url varchar
+  imported_at timestamptz
   created_at timestamptz [default: `now()`]
 }
 
@@ -78,10 +128,15 @@ Table transactions {
   date date [not null]
   currency currency [not null]
   external_id varchar [note: 'null = added manually']
+  xtb_import_id uuid [ref: > xtb_imports.id]
+  external_flow boolean [not null, default: true]
+  source_label varchar(100)
   created_at timestamptz [default: `now()`]
 
   indexes {
     (user_id, date) [name: 'ix_transactions_user_date']
+    (user_id, external_id) [unique, name: 'uq_transactions_user_external']
+    xtb_import_id [name: 'ix_transactions_xtb_import_id']
   }
 }
 
@@ -89,7 +144,8 @@ Table stock_transactions {
   transaction_id uuid [pk, ref: - transactions.id]
   stock_id uuid [not null, ref: > stocks.id]
   volume decimal(18,8) [not null]
-  price_per_unit decimal(18,4) [not null]
+  price_per_unit decimal(26,12) [not null]
+  total_value decimal(18,2) [note: 'Authoritative imported execution total']
 
   indexes {
     stock_id [name: 'ix_stock_transactions_stock_id']
@@ -131,7 +187,7 @@ Table asset_prices {
   id uuid [pk, default: `gen_random_uuid()`]
   stock_id uuid [not null, ref: > stocks.id]
   price_date date [not null]
-  price decimal(18,4) [not null]
+  price decimal(26,12) [not null]
   currency currency [not null]
   updated_at timestamptz [default: `now()`]
 
@@ -164,5 +220,29 @@ Table exchange_rates {
 
   indexes {
     (currency, rate_date) [unique]
+  }
+}
+
+Table nbp_reference_rates {
+  effective_from date [pk, note: 'Date the NBP reference rate became effective']
+  rate_pct decimal(7,4) [not null]
+  source_url varchar [not null]
+  imported_at timestamptz [not null]
+
+  checks {
+    `rate_pct >= 0 AND rate_pct < 100` [name: 'ck_nbp_rate_range']
+  }
+}
+
+Table polish_inflation {
+  month date [pk, note: 'First day of observation month, not publication month']
+  rate_pct decimal(9,4) [not null, note: 'Polish headline CPI year over year, index minus 100']
+  source_flag varchar [not null]
+  source_url varchar [not null]
+  imported_at timestamptz [not null]
+
+  checks {
+    `EXTRACT(DAY FROM month) = 1` [name: 'ck_inflation_month_start']
+    `rate_pct > -100 AND rate_pct < 10000` [name: 'ck_inflation_range']
   }
 }

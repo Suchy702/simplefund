@@ -60,7 +60,7 @@ class ApiModel(BaseModel):
 
 class Operation(ApiModel):
     id: UUID
-    type: Literal["buy", "sell", "deposit", "withdrawal"]
+    type: Literal["buy", "sell", "deposit", "withdrawal", "import"]
     kind: str
     name: str
     qty: Amount | None
@@ -73,6 +73,15 @@ class Operation(ApiModel):
     )
     exchange_rate_date: Date | None = None
     value_pln: Amount | None = None
+    quantity_unit: Literal["g"] | None = None
+    source_label: str | None = None
+    operation_count: int | None = None
+    value_description: str | None = None
+
+
+class HoldingIncomePayment(ApiModel):
+    date: Date
+    amount: Amount
 
 
 class Holding(ApiModel):
@@ -88,6 +97,19 @@ class Holding(ApiModel):
     change: Amount | None
     change_pct: Amount | None
     color: str
+    quantity_unit: Literal["g"] | None = None
+    price_date: Date | None = None
+    price_source: str | None = None
+    valuation_note: str | None = None
+    accrued_interest: Amount | None = Field(
+        default=None, description="Gross interest remaining in a bond holding, in PLN."
+    )
+    paid_interest: Amount | None = Field(
+        default=None, description="Gross scheduled coupons distributed, in PLN."
+    )
+    income_payments: list[HoldingIncomePayment] = Field(
+        default_factory=list, exclude=True
+    )
     price_currency: Currency | None = Field(
         default=None, description="Currency of the displayed market price."
     )
@@ -122,7 +144,10 @@ class PortfolioKpi(ApiModel):
         "converted to PLN at historical FX rates. Trades do not debit cash."
     )
     total_value: Amount | None
-    balance: Amount | None
+    balance: Amount | None = Field(
+        description="Current value plus distributed gross bond coupons "
+        "minus net contributions."
+    )
     roi: Amount | None = Field(description="Profit / positive net contributions, in %.")
     xirr: Amount | None = Field(
         description="Annual money-weighted return in %, using dated cash flows and "

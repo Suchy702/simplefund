@@ -3,6 +3,8 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+ExternalService = Literal["bonds", "nbp", "gus"]
+
 
 class ConnectionCheck(BaseModel):
     status: Literal["ok", "error"]
@@ -14,6 +16,10 @@ class ConnectionCheck(BaseModel):
 class CurrencyConnectionCheck(ConnectionCheck):
     rate_dates: dict[str, date] | None = None
     rates: dict[str, float] | None = None
+
+
+class ExternalConnectionCheck(ConnectionCheck):
+    source_url: str
 
 
 class StockConnectionCheck(ConnectionCheck):

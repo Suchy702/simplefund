@@ -1,20 +1,27 @@
 export type RangeKey = '1M' | '3M' | '6M' | '1R' | 'MAX'
 export type AssetClass =
-  'Akcje' | 'Lokata' | 'Depozyt' | 'Gotówka' | 'Obligacje'
+  | 'Akcje'
+  | 'Lokata'
+  | 'Depozyt'
+  | 'Gotówka'
+  | 'Obligacje skarbowe'
+  | 'Kruszce'
+  | 'Kryptowaluty'
 export const CURRENCIES = ['PLN', 'USD', 'EUR', 'GBP', 'CHF'] as const
 export type Currency = (typeof CURRENCIES)[number]
 export const TRADE_OPERATION_TYPES = ['buy', 'sell'] as const
 export const CASH_OPERATION_TYPES = ['deposit', 'withdrawal'] as const
 export type TradeOperationType = (typeof TRADE_OPERATION_TYPES)[number]
 export type OperationType =
-  TradeOperationType | (typeof CASH_OPERATION_TYPES)[number]
+  TradeOperationType | (typeof CASH_OPERATION_TYPES)[number] | 'import'
 export const OPERATION_LABELS: Record<OperationType, string> = {
   buy: 'Zakup',
   sell: 'Sprzedaż',
   deposit: 'Wpłata',
   withdrawal: 'Wypłata',
+  import: 'Import XTB',
 }
-export type OperationKind = AssetClass | 'ETF'
+export type OperationKind = AssetClass | 'ETF' | 'XTB'
 
 export interface Holding {
   id: string
@@ -32,6 +39,12 @@ export interface Holding {
   priceCurrency: Currency | null
   exchangeRate: number | null
   exchangeRateDate: string | null
+  quantityUnit?: 'g' | null
+  priceDate?: string | null
+  priceSource?: string | null
+  valuationNote?: string | null
+  accruedInterest?: number | null
+  paidInterest?: number | null
 }
 
 export interface Operation {
@@ -47,6 +60,26 @@ export interface Operation {
   exchangeRate: number | null
   exchangeRateDate: string | null
   valuePln: number | null
+  quantityUnit?: 'g' | null
+  sourceLabel?: string | null
+  operationCount?: number | null
+  valueDescription?: string | null
+}
+
+export interface MetalInstrument {
+  metal: 'gold' | 'silver' | 'platinum' | 'palladium'
+  name: string
+  yahooSymbol: string
+  quantityUnit: 'g'
+}
+
+export interface MetalOperationInput {
+  metal: MetalInstrument['metal']
+  operationType: TradeOperationType
+  grams: string
+  pricePerGram: string
+  currency: Currency
+  date: string
 }
 
 export interface AllocationSegment {
@@ -116,6 +149,34 @@ export interface DepositOperationInput {
   interestRate: string
   startDate: string
   maturityDate: string
+}
+
+export const BOND_FAMILIES = [
+  'ROD',
+  'ROS',
+  'COI',
+  'EDO',
+  'TOS',
+  'DOR',
+  'ROR',
+  'OTS',
+] as const
+export type BondFamily = (typeof BOND_FAMILIES)[number]
+
+export interface BondSeriesOption {
+  seriesCode: string
+  family: BondFamily
+  saleStart: string
+  saleEnd: string
+  termMonths: number
+  pricePerUnit: number
+  initialRatePct: number | null
+}
+
+export interface BondOperationInput {
+  seriesCode: string
+  quantity: number
+  date: string
 }
 
 export interface StockInstrument {

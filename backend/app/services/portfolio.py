@@ -17,7 +17,9 @@ from app.models import (
     Transaction,
 )
 from app.models.enums import AssetType, TransactionType
+from app.models.metals import METALS_BY_TICKER
 from app.repositories.portfolio import (
+    bond_valuation_sources,
     exchange_rates,
     stock_prices,
     transaction_rows,
@@ -28,9 +30,11 @@ from app.schemas.portfolio import (
     CashOperationCreate,
     DepositOperationCreate,
     Holding,
+    HoldingIncomePayment,
     Operation,
     PortfolioAllocation,
 )
+from app.services.bond_valuation import BondValuationError, BondValuator
 from app.services.exchange_rates import ExchangeRateHistory, exchange_rate_on
 
 ZERO = Decimal(0)
@@ -41,7 +45,9 @@ ALLOCATION_CLASSES = {
     "Lokata": "var(--cat-2)",
     "Depozyt": "oklch(65% 0.13 30)",
     "Gotówka": "var(--cat-3)",
-    "Obligacje": "var(--cat-4)",
+    "Obligacje skarbowe": "var(--cat-4)",
+    "Kruszce": "oklch(68% 0.13 90)",
+    "Kryptowaluty": "oklch(67% 0.17 55)",
 }
 
 
@@ -87,9 +93,17 @@ def operation_from_row(row, rates: ExchangeRateHistory | None = None) -> Operati
     kind = {
         AssetType.cash: "Gotówka",
         AssetType.stock: "Akcje",
+        AssetType.crypto: "Kryptowaluty",
+        AssetType.metal: "Kruszce",
         AssetType.deposit: "Lokata",
-        AssetType.bond: "Obligacje",
+        AssetType.bond: "Obligacje skarbowe",
     }[transaction.asset_type]
+    if (
+        transaction.asset_type == AssetType.stock
+        and stock is not None
+        and stock.quote_type == "CRYPTOCURRENCY"
+    ):
+        kind = "Kryptowaluty"
     name, qty, price, value = kind, None, None, None
     operation_type = transaction.type.value
     if cash is not None:
@@ -99,7 +113,11 @@ def operation_from_row(row, rates: ExchangeRateHistory | None = None) -> Operati
         )
     elif stock_trade is not None:
         name, qty, price = stock.name, stock_trade.volume, stock_trade.price_per_unit
-        value = qty * price
+        value = (
+            stock_trade.total_value
+            if stock_trade.total_value is not None
+            else qty * price
+        )
     elif deposit is not None:
         name, value = f"Lokata {deposit.annual_rate}%", deposit.value
     elif bond is not None:
@@ -123,7 +141,25 @@ def operation_from_row(row, rates: ExchangeRateHistory | None = None) -> Operati
         exchange_rate=fx,
         exchange_rate_date=fx_date,
         value_pln=value * fx if value is not None and fx is not None else None,
+        quantity_unit="g" if transaction.asset_type == AssetType.metal else None,
+        source_label=transaction.source_label,
     )
+
+
+def validate_cash_change(daily, on: date, delta: Decimal, detail: str) -> None:
+    """A manual edit must not create or worsen an existing imported deficit."""
+    validate_cash_changes(daily, {on: delta}, detail)
+
+
+def validate_cash_changes(daily, changes, detail: str) -> None:
+    """Validate one or several changes against the same original cash ledger."""
+    previous, changed = ZERO, ZERO
+    for when in sorted(set(daily) | set(changes)):
+        amount = daily.get(when, ZERO)
+        previous += amount
+        changed += amount + changes.get(when, ZERO)
+        if changed < min(ZERO, previous):
+            raise HTTPException(409, detail)
 
 
 def create_cash_operation(
@@ -155,16 +191,12 @@ def create_cash_operation(
             daily[operation_date] += (
                 value if operation_type == TransactionType.buy else -value
             )
-        daily[data.date] += (
-            data.value if data.operation_type == "deposit" else -data.value
+        validate_cash_change(
+            daily,
+            data.date,
+            data.value if data.operation_type == "deposit" else -data.value,
+            "Niewystarczające saldo gotówki w wybranej walucie i dacie",
         )
-        balance = ZERO
-        for operation_date in sorted(daily):
-            balance += daily[operation_date]
-            if balance < ZERO:
-                raise HTTPException(
-                    409, "Niewystarczające saldo gotówki w wybranej walucie i dacie"
-                )
         transaction = Transaction(
             user_id=user_id,
             type=TransactionType.buy
@@ -236,14 +268,34 @@ def delete_operation(db: Session, user_id: UUID, transaction_id: UUID) -> None:
             .with_for_update()
         )
         if transaction is None:
-            raise HTTPException(404, "Nie znaleziono transakcji")
-        if transaction.asset_type == AssetType.stock:
+            from app.services.xtb_history import delete_import
+
+            delete_import(db, user_id, transaction_id)
+            return
+        if transaction.external_id and transaction.external_id.startswith("xtb:"):
+            raise HTTPException(
+                409,
+                "Operacja pochodzi z importu XTB. Nie można usunąć pojedynczej części "
+                "rozliczenia bez naruszenia historii rachunku.",
+            )
+        if transaction.asset_type in (
+            AssetType.stock,
+            AssetType.metal,
+            AssetType.crypto,
+        ):
             trade = db.get(StockTransaction, transaction.id)
             if trade is not None:
                 stock_id = trade.stock_id
                 db.delete(trade)
                 db.flush()
-                validate_stock_position(db, user_id, stock_id)
+                validate_stock_position(
+                    db,
+                    user_id,
+                    stock_id,
+                    transaction.currency
+                    if transaction.asset_type == AssetType.metal
+                    else None,
+                )
         if transaction.asset_type == AssetType.cash:
             rows = db.execute(
                 select(Transaction.date, Transaction.type, CashTransaction.value)
@@ -260,14 +312,20 @@ def delete_operation(db: Session, user_id: UUID, transaction_id: UUID) -> None:
                 daily[operation_date] += (
                     value if operation_type == TransactionType.buy else -value
                 )
-            balance = ZERO
-            for operation_date in sorted(daily):
-                balance += daily[operation_date]
-                if balance < ZERO:
-                    raise HTTPException(
-                        409,
-                        "Nie można usunąć transakcji: saldo gotówki stałoby się ujemne",
-                    )
+            cash = db.get(CashTransaction, transaction_id)
+            if cash is not None:
+                value = (
+                    cash.value
+                    if transaction.type == TransactionType.buy
+                    else -cash.value
+                )
+                daily[transaction.date] += value
+                validate_cash_change(
+                    daily,
+                    transaction.date,
+                    -value,
+                    "Nie można usunąć transakcji: saldo gotówki stałoby się ujemne",
+                )
         # Detail rows have foreign keys without ON DELETE CASCADE.
         for model in (
             CashTransaction,
@@ -280,11 +338,13 @@ def delete_operation(db: Session, user_id: UUID, transaction_id: UUID) -> None:
 
 
 def list_operations(db: Session, user_id: UUID) -> list[Operation]:
+    from app.services.xtb_history import history_operations
+
     rows = transaction_rows(db, user_id)
     rates = ExchangeRateHistory(
         exchange_rates(db, [(row[0].currency, row[0].date) for row in rows])
     )
-    return [operation_from_row(row, rates) for row in reversed(rows)]
+    return history_operations(db, user_id, rows, rates)
 
 
 def list_holdings(db: Session, user_id: UUID) -> list[Holding]:
@@ -308,17 +368,25 @@ def load_portfolio(db: Session, user_id: UUID):
     requested_rates.extend((row[0].currency, today) for row in rows)
     requested_rates.extend((price.currency, today) for price in [*market, *manual])
     rates = ExchangeRateHistory(exchange_rates(db, requested_rates))
-    holdings = holdings_from_rows(rows, rates, market, manual, today)
+    bonds = BondValuator(
+        *bond_valuation_sources(
+            db, (row[5].series_code for row in rows if row[5] is not None), today
+        )
+    )
+    holdings = holdings_from_rows(rows, rates, market, manual, today, bonds)
     return rows, rates, holdings, today
 
 
-def holdings_from_rows(rows, rates, market, manual, on: date) -> list[Holding]:
+def holdings_from_rows(
+    rows, rates, market, manual, on: date, bonds: BondValuator | None = None
+) -> list[Holding]:
     """Value a portfolio snapshot using only observations available on its date."""
     rates = (
         rates if isinstance(rates, ExchangeRateHistory) else ExchangeRateHistory(rates)
     )
     positions: dict[str, Holding] = {}
     deposit_terms: dict[str, DepositTransaction] = {}
+    bond_lots = defaultdict(list)
     for row in rows:
         transaction, cash, stock_trade, stock, deposit, bond = row
         if transaction.date > on:
@@ -328,6 +396,8 @@ def holdings_from_rows(rows, rates, market, manual, on: date) -> list[Holding]:
             asset_id, ticker, quantity = "cash", transaction.currency.value, cash.value
         elif stock_trade is not None:
             asset_id, ticker, quantity = str(stock.id), stock.ticker, stock_trade.volume
+            if transaction.asset_type == AssetType.metal:
+                ticker = METALS_BY_TICKER[stock.ticker].display_symbol
         elif deposit is not None:
             asset_id = (
                 f"deposit:{deposit.annual_rate}:"
@@ -345,6 +415,8 @@ def holdings_from_rows(rows, rates, market, manual, on: date) -> list[Holding]:
         key = f"{asset_id}:{transaction.currency.value}"
         if deposit is not None:
             deposit_terms[key] = deposit
+        if bond is not None:
+            bond_lots[key].append((transaction, bond))
         if key not in positions:
             positions[key] = Holding(
                 id=key,
@@ -359,13 +431,28 @@ def holdings_from_rows(rows, rates, market, manual, on: date) -> list[Holding]:
                 change=None,
                 change_pct=None,
                 color=ALLOCATION_CLASSES.get(operation.kind, "var(--cat-4)"),
+                quantity_unit=operation.quantity_unit,
+                valuation_note=(
+                    "Orientacyjna wartość metalu według kontraktów terminowych Yahoo. "
+                    "Nie uwzględnia premii monet i sztabek ani marży skupu."
+                    if transaction.asset_type == AssetType.metal
+                    else (
+                        "Wycena ręczna — brak automatycznych notowań Yahoo."
+                        if stock is not None and stock.manual_price_only
+                        else None
+                    )
+                ),
             )
         position = positions[key]
         fx = exchange_rate_on(rates, transaction.currency, transaction.date)
         cost = (
-            operation.value * fx
-            if operation.value is not None and fx is not None
-            else None
+            ZERO
+            if operation.value == ZERO
+            else (
+                operation.value * fx
+                if operation.value is not None and fx is not None
+                else None
+            )
         )
         if transaction.type == TransactionType.buy:
             position.qty += quantity
@@ -405,11 +492,14 @@ def holdings_from_rows(rows, rates, market, manual, on: date) -> list[Holding]:
         position.exchange_rate_date = fx_date
         if position.asset_class == "Gotówka":
             position.value = position.qty * fx if fx is not None else None
-        elif position.asset_class == "Akcje":
+        elif position.asset_class in ("Akcje", "Kruszce"):
             stock_id = UUID(position.id.split(":")[0])
             price = prices.get(stock_id)
             if price is not None:
                 position.price = price.price
+                position.price_date = price.price_date
+                if position.asset_class == "Kruszce":
+                    position.price_source = "Yahoo"
                 position.price_currency = price.currency
                 price_fx, price_fx_date = rates.on(price.currency, on)
                 position.exchange_rate = price_fx
@@ -427,9 +517,62 @@ def holdings_from_rows(rows, rates, market, manual, on: date) -> list[Holding]:
             # Simple gross interest using actual elapsed days and a 365-day year.
             growth = ONE + deposit.annual_rate / 100 * Decimal(elapsed_days) / 365
             position.value = position.qty * growth * fx if fx is not None else None
-        # Bond valuations still need a market valuation model.
+        elif position.asset_class == "Obligacje skarbowe":
+            # Retail bonds use accrued gross interest rather than market quotes.
+            try:
+                if position.currency.value != "PLN":
+                    raise BondValuationError("Obligacje skarbowe wymagają waluty PLN")
+                values = []
+                for transaction, bond in bond_lots[position.id]:
+                    if transaction.type != TransactionType.buy:
+                        raise BondValuationError(
+                            "Brak obsługi rozliczenia sprzedaży obligacji"
+                        )
+                    values.append(
+                        (bonds or BondValuator()).value(
+                            bond.series_code, transaction.date, bond.quantity, on
+                        )
+                    )
+                position.value = sum((item.value for item in values), ZERO)
+                position.accrued_interest = sum(
+                    (item.accrued_interest for item in values), ZERO
+                )
+                position.paid_interest = sum(
+                    (item.paid_interest for item in values), ZERO
+                )
+                position.income_payments = [
+                    HoldingIncomePayment(date=payment.date, amount=payment.amount)
+                    for item in values
+                    for payment in item.payments
+                ]
+                position.price = position.value / position.qty
+                position.price_currency = position.currency
+                position.price_date = on
+                position.valuation_note = (
+                    "Szacunkowa wartość brutto z naliczonymi odsetkami. "
+                    "Bilans uwzględnia też "
+                    "wypłacone kupony brutto; nie są dopisywane do salda gotówki."
+                )
+                if any(
+                    (bonds.series[bond.series_code].family if bonds else None)
+                    in ("COI", "EDO", "ROS", "ROD")
+                    for _, bond in bond_lots[position.id]
+                ):
+                    position.valuation_note += (
+                        " Historyczne odczyty GUS uwzględniają późniejsze korekty, "
+                        "więc wynik może różnić się od tabel odsetkowych emitenta."
+                    )
+                if all(item.maturity_date <= on for item in values):
+                    position.valuation_note += (
+                        " Termin wykupu minął: pokazana jest należność z wykupu, "
+                        "bez dalszego naliczania odsetek."
+                    )
+            except BondValuationError as error:
+                position.valuation_note = str(error)
         if position.value is not None and position.cost is not None:
-            position.change = position.value - position.cost
+            position.change = (
+                position.value + (position.paid_interest or ZERO) - position.cost
+            )
             if position.cost > ZERO:
                 position.change_pct = position.change / position.cost * 100
         result.append(position)

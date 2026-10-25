@@ -153,12 +153,14 @@ def portfolio_statistics(
 
 
 def portfolio_dashboard(db: Session, user_id: UUID) -> PortfolioDashboard:
+    from app.services.xtb_history import history_operations
+
     rows, rates, holdings, today = load_portfolio(db, user_id)
     return PortfolioDashboard(
         kpi=statistics_from_holdings(rows, rates, holdings, today).kpi,
         holdings=holdings,
         allocation=allocation_from_holdings(holdings),
-        operations=[operation_from_row(row, rates) for row in reversed(rows)],
+        operations=history_operations(db, user_id, rows, rates),
     )
 
 
@@ -172,6 +174,8 @@ def statistics_from_holdings(
     flows: dict[date, Decimal | None] = defaultdict(lambda: ZERO)
     for row in rows:
         transaction = row[0]
+        if transaction.external_flow is False:
+            continue
         operation = operation_from_row(row)
         fx = exchange_rate_on(rates, transaction.currency, transaction.date)
         previous = flows[transaction.date]
@@ -192,10 +196,21 @@ def statistics_from_holdings(
         else None
     )
     balance = (
-        total_value - total_contrib
+        total_value
+        + sum((holding.paid_interest or ZERO for holding in holdings), ZERO)
+        - total_contrib
         if total_value is not None and total_contrib is not None
         else None
     )
+    # Coupons leave the bond, so include their actual scheduled dates in XIRR
+    # without treating investment income as a reduction of contributed capital.
+    return_flows = dict(flows)
+    for holding in holdings:
+        for payment in holding.income_payments:
+            previous = return_flows.get(payment.date, ZERO)
+            return_flows[payment.date] = (
+                previous - payment.amount if previous is not None else None
+            )
     kpi = PortfolioKpi(
         as_of_date=today,
         total_contrib=total_contrib,
@@ -204,7 +219,7 @@ def statistics_from_holdings(
         roi=balance / total_contrib * 100
         if balance is not None and total_contrib is not None and total_contrib > ZERO
         else None,
-        xirr=xirr(flows, total_value, today),
+        xirr=xirr(return_flows, total_value, today),
         unvalued_count=sum(h.value is None for h in holdings),
     )
     return PortfolioStatistics(

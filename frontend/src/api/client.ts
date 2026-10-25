@@ -14,14 +14,15 @@ export async function apiRequest<T>(
   }
 
   let response: Response
+  const headers = new Headers(options.headers)
+  if (!(options.body instanceof FormData) && !headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json')
+  }
+  headers.set('Authorization', `Bearer ${data.session.access_token}`)
   try {
     response = await fetch(`${apiUrl}${path}`, {
       ...options,
-      headers: {
-        ...options.headers,
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${data.session.access_token}`,
-      },
+      headers,
     })
   } catch {
     throw new Error('Nie udało się połączyć z serwerem.')

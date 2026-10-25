@@ -42,7 +42,7 @@ export const OperationsTable = () => {
         <div>
           <CardTitle>Historia operacji</CardTitle>
           <CardDescription>
-            {ops ? `Liczba transakcji: ${ops.length}` : ' '}
+            {ops ? `Liczba wpisów: ${ops.length}` : ' '}
           </CardDescription>
         </div>
         <div className="flex gap-2">
@@ -80,8 +80,8 @@ export const OperationsTable = () => {
             ))}
           </div>
         ) : (
-          <Table containerClassName="max-h-[467px]">
-            <TableHeader className="sticky top-0 z-10">
+          <Table className="[&_td]:py-2">
+            <TableHeader>
               <TableRow>
                 <TableHead>Operacja</TableHead>
                 <TableHead>Typ aktywa</TableHead>
@@ -107,27 +107,47 @@ export const OperationsTable = () => {
                 </TableRow>
               )}
               {visibleOperations?.map((o) => (
-                <TableRow key={o.id} className="h-[61px]">
+                <TableRow key={o.id} className="h-[48px]">
                   <TableCell>
                     <Badge
                       variant={
-                        o.type === 'buy' || o.type === 'deposit'
-                          ? 'buy'
-                          : 'sell'
+                        o.type === 'import'
+                          ? 'default'
+                          : o.type === 'buy' || o.type === 'deposit'
+                            ? 'buy'
+                            : 'sell'
                       }
                     >
-                      {OPERATION_LABELS[o.type]}
+                      {o.sourceLabel ?? OPERATION_LABELS[o.type]}
                     </Badge>
                   </TableCell>
                   <TableCell>{o.kind}</TableCell>
-                  <TableCell className="font-medium">{o.name}</TableCell>
-                  <TableCell className="text-right font-mono tabular">
-                    {numberOrDash(o.qty)}
+                  <TableCell className="font-medium">
+                    {o.name}
+                    {o.operationCount != null && (
+                      <span className="block text-xs font-normal text-ink-3">
+                        {o.operationCount} operacji źródłowych
+                      </span>
+                    )}
                   </TableCell>
                   <TableCell className="text-right font-mono tabular">
-                    {numberOrDash(o.price)}
+                    {o.qty !== null && o.quantityUnit
+                      ? `${fmtNumber(o.qty)} ${o.quantityUnit}`
+                      : o.kind === 'Kryptowaluty' && o.qty !== null
+                        ? fmtNumber(o.qty, 8)
+                        : numberOrDash(o.qty)}
                   </TableCell>
-                  <TableCell className="text-right font-mono tabular font-medium">
+                  <TableCell className="text-right font-mono tabular">
+                    {o.price !== null && o.quantityUnit
+                      ? `${fmtNumber(o.price)}/${o.quantityUnit}`
+                      : o.kind === 'Kryptowaluty' && o.price !== null
+                        ? fmtNumber(o.price, 12)
+                        : numberOrDash(o.price)}
+                  </TableCell>
+                  <TableCell
+                    className="text-right font-mono tabular font-medium"
+                    title={o.valueDescription ?? undefined}
+                  >
                     {numberOrDash(o.value)}
                   </TableCell>
                   <TableCell>{o.currency}</TableCell>
@@ -141,8 +161,12 @@ export const OperationsTable = () => {
                     <Button
                       variant="ghost"
                       size="icon"
-                      aria-label="Usuń"
-                      title="Usuń"
+                      aria-label={
+                        o.type === 'import' ? 'Usuń cały import XTB' : 'Usuń'
+                      }
+                      title={
+                        o.type === 'import' ? 'Usuń cały import XTB' : 'Usuń'
+                      }
                       disabled={deleteOperation.isPending}
                       onClick={() => deleteOperation.mutate(o.id)}
                     >
@@ -158,7 +182,7 @@ export const OperationsTable = () => {
                     <TableRow
                       key={`empty-${index}`}
                       aria-hidden="true"
-                      className="h-[61px] hover:bg-transparent"
+                      className="h-[48px] hover:bg-transparent"
                     >
                       <TableCell colSpan={10} className="p-0" />
                     </TableRow>
@@ -176,7 +200,7 @@ export const OperationsTable = () => {
               <span className="font-medium tabular-nums text-ink-2">
                 {pageStart + 1}–{pageStart + (visibleOperations?.length ?? 0)}
               </span>{' '}
-              z {ops.length} transakcji
+              z {ops.length} wpisów
             </span>
             <div className="flex items-center gap-1 rounded-md border border-border bg-surface-subtle p-1">
               <Button

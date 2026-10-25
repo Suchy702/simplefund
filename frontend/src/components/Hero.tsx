@@ -72,7 +72,7 @@ export const Hero = () => {
           <HeroLabel>Wartość portfela</HeroLabel>
           <div className="font-mono tabular text-42 font-semibold tracking-tightest text-foreground">
             {totalValue === null ? '—' : fmtNumber(totalValue)}
-            <span className="ml-1.5 text-lg font-medium tracking-normal text-ink-3">
+            <span className="ml-2 text-13 font-normal tracking-normal text-ink-3">
               PLN
             </span>
           </div>
@@ -86,9 +86,13 @@ export const Hero = () => {
         <HeroStat
           label="Bilans"
           value={
-            balance === null ? '—' : fmtMoney(balance, 'PLN', { sign: true })
+            <>
+              {balance === null ? '—' : fmtMoney(balance, '', { sign: true })}
+              <span className="ml-2 text-13 font-normal tracking-normal text-ink-3">
+                PLN
+              </span>
+            </>
           }
-          sub="zysk / strata łącznie"
           toneClass={
             balance === null ? undefined : positive ? 'text-pos' : 'text-neg'
           }
@@ -96,8 +100,14 @@ export const Hero = () => {
 
         <HeroStat
           label="Wkład własny"
-          value={totalContrib === null ? '—' : fmtNumber(totalContrib)}
-          sub="PLN · wkład netto"
+          value={
+            <>
+              {totalContrib === null ? '—' : fmtNumber(totalContrib)}
+              <span className="ml-2 text-13 font-normal tracking-normal text-ink-3">
+                PLN
+              </span>
+            </>
+          }
         />
         <HeroStat
           label="ROI"

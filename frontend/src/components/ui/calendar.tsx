@@ -4,16 +4,23 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon,
 } from "lucide-react"
-import { DayButton, DayPicker, getDefaultClassNames } from "react-day-picker"
+import { DayButton, DayPicker, getDefaultClassNames, type DropdownProps } from "react-day-picker"
 
 import { cn } from "@/lib/utils"
 import { Button, buttonVariants } from "@/components/ui/button"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 function Calendar({
   className,
   classNames,
   showOutsideDays = true,
-  captionLayout = "label",
+  captionLayout = "dropdown-years",
   buttonVariant = "ghost",
   formatters,
   components,
@@ -68,11 +75,11 @@ function Calendar({
           defaultClassNames.dropdowns
         ),
         dropdown_root: cn(
-          "has-focus:border-ring border-input shadow-xs has-focus:ring-ring/50 has-focus:ring-[3px] relative rounded-md border",
+          "border-input relative rounded-md border transition-colors hover:bg-accent focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/50",
           defaultClassNames.dropdown_root
         ),
         dropdown: cn(
-          "bg-popover absolute inset-0 opacity-0",
+          "bg-popover text-popover-foreground absolute inset-0 cursor-pointer opacity-0 disabled:cursor-default",
           defaultClassNames.dropdown
         ),
         caption_label: cn(
@@ -154,6 +161,7 @@ function Calendar({
           )
         },
         DayButton: CalendarDayButton,
+        YearsDropdown: CalendarYearDropdown,
         WeekNumber: ({ children, ...props }) => {
           return (
             <td {...props}>
@@ -167,6 +175,40 @@ function Calendar({
       }}
       {...props}
     />
+  )
+}
+
+function CalendarYearDropdown({
+  options,
+  value,
+  disabled,
+  onChange,
+  "aria-label": ariaLabel,
+}: DropdownProps) {
+  return (
+    <Select
+      value={String(value)}
+      disabled={disabled}
+      onValueChange={(year) => {
+        onChange?.({ target: { value: year } } as React.ChangeEvent<HTMLSelectElement>)
+      }}
+    >
+      <SelectTrigger aria-label={ariaLabel} className="h-8 w-auto gap-1 px-2 font-medium">
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent className="min-w-[5.5rem] [&_[data-radix-select-viewport]]:max-h-64 [&_[data-radix-select-viewport]]:p-0">
+        {options?.map((option) => (
+          <SelectItem
+            key={option.value}
+            value={String(option.value)}
+            disabled={option.disabled}
+            className="h-8 py-0"
+          >
+            {option.label}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   )
 }
 

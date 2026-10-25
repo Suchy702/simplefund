@@ -3,7 +3,7 @@ import unicodedata
 from collections import OrderedDict
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 from threading import Lock
 from time import monotonic
@@ -59,8 +59,8 @@ def currency_issue(currency: str | None) -> str | None:
     return None
 
 
-def market_snapshot(symbol: str) -> MarketSnapshot:
-    cached = _get(_snapshots, symbol)
+def market_snapshot(symbol: str, *, use_cache: bool = True) -> MarketSnapshot:
+    cached = _get(_snapshots, symbol) if use_cache else None
     if cached is not None:
         return cached
     ticker = yf.Ticker(symbol)
@@ -80,16 +80,20 @@ def market_snapshot(symbol: str) -> MarketSnapshot:
     currency = metadata.get("currency")
     currency = currency if isinstance(currency, str) and currency else None
     issue = currency_issue(currency)
+    is_crypto = metadata.get("instrumentType") == "CRYPTOCURRENCY"
+    precision = Decimal("0.000000000001") if is_crypto else Decimal("0.0001")
     prices = []
     for timestamp, row in history.iterrows():
         price = Decimal(str(row["Close"]))
         price_date = timestamp.date()
+        if is_crypto and price_date >= datetime.now(timezone.utc).date():
+            continue
         if (
             price.is_finite()
             and 0 < price < Decimal("100000000000000")
             and price_date <= date.today()
         ):
-            rounded = price.quantize(Decimal("0.0001"))
+            rounded = price.quantize(precision)
             if rounded > 0:
                 prices.append((price_date, rounded))
     if not prices:
@@ -107,11 +111,11 @@ def market_snapshot(symbol: str) -> MarketSnapshot:
 
 
 def suggest_stock_price(
-    symbol: str, on: date, currency: Currency
+    symbol: str, on: date, currency: Currency, *, crypto: bool = False
 ) -> StockPriceSuggestion:
     if on > date.today():
         raise HTTPException(422, "Data transakcji nie może być w przyszłości")
-    key = f"{symbol}:{on.isoformat()}:{currency.value}"
+    key = f"{symbol}:{on.isoformat()}:{currency.value}:{crypto}"
     cached = _get(_price_suggestions, key)
     if cached is not None:
         return cached
@@ -133,20 +137,25 @@ def suggest_stock_price(
         canonical = metadata.get("symbol")
         if not isinstance(canonical, str) or canonical.upper() != symbol.upper():
             raise ValueError("Yahoo returned a different or missing symbol")
+        if crypto and metadata.get("instrumentType") != "CRYPTOCURRENCY":
+            raise HTTPException(422, "Wybierz kryptowalutę z Yahoo Finance.")
         if metadata.get("currency") != currency.value:
             raise HTTPException(
                 422, "Waluta notowania Yahoo różni się od waluty wybranego instrumentu."
             )
         observations = []
+        precision = Decimal("0.000000000001") if crypto else Decimal("0.0001")
         for timestamp, row in history.iterrows():
             price = Decimal(str(row["Close"]))
             price_date = timestamp.date()
+            if crypto and price_date >= datetime.now(timezone.utc).date():
+                continue
             if (
                 start <= price_date <= on
                 and price.is_finite()
                 and 0 < price < Decimal("100000000000000")
             ):
-                rounded = price.quantize(Decimal("0.0001"))
+                rounded = price.quantize(precision)
                 if rounded > 0:
                     observations.append((price_date, rounded))
     except HTTPException:
@@ -198,7 +207,7 @@ def _enrich(quote: dict) -> StockInstrument:
     )
 
 
-def search_stocks(query: str) -> list[StockInstrument]:
+def search_stocks(query: str, *, crypto: bool = False) -> list[StockInstrument]:
     # Unicode decomposition handles Ż/ó/etc.; ł needs an explicit replacement.
     normalized = "".join(
         char
@@ -207,7 +216,8 @@ def search_stocks(query: str) -> list[StockInstrument]:
         )
         if not unicodedata.combining(char)
     ).strip()
-    cached = _get(_searches, normalized.casefold())
+    key = f"{crypto}:{normalized.casefold()}"
+    cached = _get(_searches, key)
     if cached is not None:
         return cached
     try:
@@ -227,9 +237,16 @@ def search_stocks(query: str) -> list[StockInstrument]:
     # Preserve Yahoo ordering and every instrument type, removing duplicate symbols.
     unique = {}
     for quote in quotes:
+        if (quote.get("quoteType") == "CRYPTOCURRENCY") != crypto:
+            continue
         unique.setdefault(quote["symbol"], quote)
     results = list(_workers.map(_enrich, unique.values()))
+    results = [
+        result
+        for result in results
+        if (result.quote_type == "CRYPTOCURRENCY") == crypto
+    ]
     # Retry incomplete currency/metadata responses instead of caching them.
     if all(result.unavailable_reason is None for result in results):
-        _put(_searches, normalized.casefold(), results, ttl=60)
+        _put(_searches, key, results, ttl=60)
     return results

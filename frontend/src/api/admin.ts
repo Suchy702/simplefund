@@ -9,6 +9,7 @@ export interface ConnectionCheck {
   detail: string
   checked_at: string
   response_time_ms: number | null
+  source_url?: string
   rate_dates?: Record<string, string> | null
   rates?: Record<string, number> | null
   symbol?: string
@@ -108,6 +109,41 @@ export const useStockConnection = (enabled: boolean) => {
       apiRequest<ConnectionCheck>('/admin/connections/stocks', userId!, {
         signal: AbortSignal.any([signal, AbortSignal.timeout(30_000)]),
       }),
+    enabled: enabled && Boolean(userId),
+    staleTime: 0,
+    retry: false,
+  })
+}
+
+export const useCryptoConnection = (enabled: boolean) => {
+  const { data: session } = useSession()
+  const userId = session?.user.id
+  return useQuery({
+    queryKey: ['admin', userId, 'crypto'],
+    queryFn: ({ signal }) =>
+      apiRequest<ConnectionCheck>('/admin/connections/crypto', userId!, {
+        signal: AbortSignal.any([signal, AbortSignal.timeout(30_000)]),
+      }),
+    enabled: enabled && Boolean(userId),
+    staleTime: 0,
+    retry: false,
+  })
+}
+
+export const useExternalConnection = (
+  service: 'bonds' | 'nbp' | 'gus',
+  enabled: boolean
+) => {
+  const { data: session } = useSession()
+  const userId = session?.user.id
+  return useQuery({
+    queryKey: ['admin', userId, 'sources', service],
+    queryFn: ({ signal }) =>
+      apiRequest<ConnectionCheck>(
+        `/admin/connections/sources/${service}`,
+        userId!,
+        { signal: AbortSignal.any([signal, AbortSignal.timeout(15_000)]) }
+      ),
     enabled: enabled && Boolean(userId),
     staleTime: 0,
     retry: false,

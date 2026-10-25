@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.models import (
     AssetPrice,
+    BondSeries,
     BondTransaction,
     CashTransaction,
     DepositTransaction,
@@ -18,6 +19,23 @@ from app.models import (
     Transaction,
 )
 from app.models.enums import Currency
+from app.models.polish_macro import NbpReferenceRate, PolishInflation
+
+
+def bond_valuation_sources(db: Session, codes: Iterable[str], on: date):
+    codes = set(codes)
+    if not codes:
+        return [], [], []
+    series = db.scalars(
+        select(BondSeries).where(BondSeries.series_code.in_(codes))
+    ).all()
+    inflation = db.scalars(
+        select(PolishInflation).where(PolishInflation.month <= on)
+    ).all()
+    references = db.scalars(
+        select(NbpReferenceRate).where(NbpReferenceRate.effective_from <= on)
+    ).all()
+    return series, inflation, references
 
 
 def transaction_rows(db: Session, user_id: UUID):
@@ -102,7 +120,9 @@ def stock_prices(db: Session, user_id: UUID, stock_ids: Iterable[UUID]):
     ).all()
     manual = db.scalars(
         select(ManualPrice)
+        .join(Stock, Stock.id == ManualPrice.stock_id)
         .where(
+            Stock.quote_type.is_distinct_from("METAL"),
             ManualPrice.user_id == user_id,
             ManualPrice.stock_id.in_(stock_ids),
             ManualPrice.price_date <= date.today(),

@@ -3,6 +3,7 @@ import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { format } from 'date-fns'
+import { Landmark } from 'lucide-react'
 import { useAddDepositOperation } from '@/api/portfolio'
 
 import { Button } from '@/components/ui/button'
@@ -113,7 +114,10 @@ export const AddDepositOperationModal = ({
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Dodaj operację — Lokaty</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            <Landmark size={20} className="shrink-0" aria-hidden="true" />
+            Lokaty
+          </DialogTitle>
         </DialogHeader>
 
         <form

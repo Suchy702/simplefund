@@ -16,7 +16,7 @@ class AssetPrice(Base):
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     stock_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("stocks.id"), nullable=False)
     price_date: Mapped[date] = mapped_column(Date, nullable=False)
-    price: Mapped[Decimal] = mapped_column(Numeric(18, 4), nullable=False)
+    price: Mapped[Decimal] = mapped_column(Numeric(26, 12), nullable=False)
     currency: Mapped[Currency] = mapped_column(Enum(Currency), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=datetime.now
