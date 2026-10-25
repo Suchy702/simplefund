@@ -103,11 +103,13 @@ def exchange_rates(
     ).all()
 
 
-def stock_prices(db: Session, user_id: UUID, stock_ids: Iterable[UUID]):
+def stock_prices(
+    db: Session, user_id: UUID, stock_ids: Iterable[UUID], *, history: bool = False
+):
     stock_ids = set(stock_ids)
     if not stock_ids:
         return [], []
-    market = db.scalars(
+    market_query = (
         select(AssetPrice)
         .join(Stock, Stock.id == AssetPrice.stock_id)
         .where(
@@ -115,10 +117,9 @@ def stock_prices(db: Session, user_id: UUID, stock_ids: Iterable[UUID]):
             AssetPrice.price_date <= date.today(),
             Stock.manual_price_only.is_(False),
         )
-        .distinct(AssetPrice.stock_id)
         .order_by(AssetPrice.stock_id, AssetPrice.price_date.desc())
-    ).all()
-    manual = db.scalars(
+    )
+    manual_query = (
         select(ManualPrice)
         .join(Stock, Stock.id == ManualPrice.stock_id)
         .where(
@@ -127,7 +128,9 @@ def stock_prices(db: Session, user_id: UUID, stock_ids: Iterable[UUID]):
             ManualPrice.stock_id.in_(stock_ids),
             ManualPrice.price_date <= date.today(),
         )
-        .distinct(ManualPrice.stock_id)
         .order_by(ManualPrice.stock_id, ManualPrice.price_date.desc())
-    ).all()
-    return market, manual
+    )
+    if not history:
+        market_query = market_query.distinct(AssetPrice.stock_id)
+        manual_query = manual_query.distinct(ManualPrice.stock_id)
+    return db.scalars(market_query).all(), db.scalars(manual_query).all()

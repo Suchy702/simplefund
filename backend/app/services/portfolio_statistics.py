@@ -1,6 +1,6 @@
 from calendar import monthrange
 from collections import defaultdict
-from datetime import date
+from datetime import date, timedelta
 from decimal import Decimal
 from math import exp, expm1, fsum, isfinite
 from uuid import UUID
@@ -8,6 +8,11 @@ from uuid import UUID
 from sqlalchemy.orm import Session
 
 from app.models.enums import TransactionType
+from app.repositories.portfolio import (
+    bond_valuation_sources,
+    exchange_rates,
+    stock_prices,
+)
 from app.schemas.portfolio import (
     Holding,
     PerformanceStatistics,
@@ -17,11 +22,13 @@ from app.schemas.portfolio import (
     PortfolioRange,
     PortfolioStatistics,
 )
+from app.services.bond_valuation import BondValuator
 from app.services.exchange_rates import ExchangeRateHistory, exchange_rate_on
 from app.services.portfolio import (
     ONE,
     ZERO,
     allocation_from_holdings,
+    holdings_from_rows,
     load_portfolio,
     operation_from_row,
 )
@@ -147,9 +154,75 @@ def xirr(
 def portfolio_statistics(
     db: Session, user_id: UUID, selected_range: PortfolioRange = "1R"
 ) -> PortfolioStatistics:
-    """Calculate current KPIs without rebuilding historical daily valuations."""
+    """Return current KPIs and daily valuations from stored observations."""
     rows, rates, holdings, today = load_portfolio(db, user_id)
-    return statistics_from_holdings(rows, rates, holdings, today, selected_range)
+    result = statistics_from_holdings(rows, rates, holdings, today, selected_range)
+    if not rows:
+        return result
+
+    # Include sold instruments: they still contribute to historical valuations.
+    market, manual = stock_prices(
+        db,
+        user_id,
+        [row[2].stock_id for row in rows if row[2] is not None],
+        history=True,
+    )
+    historical_rates = ExchangeRateHistory(exchange_rates(db))
+    bonds = BondValuator(
+        *bond_valuation_sources(
+            db, (row[5].series_code for row in rows if row[5] is not None), today
+        )
+    )
+    flows = external_flows(rows, historical_rates)
+    start = max(min(row[0].date for row in rows), range_start(today, selected_range))
+    # Keep one preceding snapshot for the first flow-adjusted daily return.
+    on = start - timedelta(days=1) if start > date.min else start
+    observations = [
+        iter(sorted(prices, key=lambda price: price.price_date))
+        for prices in (market, manual)
+    ]
+    pending = [next(prices, None) for prices in observations]
+    latest = [{}, {}]
+    previous_value, previous_income = None, ZERO
+    returns: list[Decimal | None] = []
+    while on <= today:
+        for index, prices in enumerate(observations):
+            while pending[index] is not None and pending[index].price_date <= on:
+                price = pending[index]
+                latest[index][price.stock_id] = price
+                pending[index] = next(prices, None)
+        daily = holdings_from_rows(
+            rows,
+            historical_rates,
+            list(latest[0].values()),
+            list(latest[1].values()),
+            on,
+            bonds,
+        )
+        value = (
+            sum((holding.value for holding in daily), ZERO)
+            if all(holding.value is not None for holding in daily)
+            else None
+        )
+        income = sum((holding.paid_interest or ZERO for holding in daily), ZERO)
+        if on >= start:
+            result.series.append(PortfolioPoint(date=on, value=value))
+            flow = flows.get(on, ZERO)
+            returns.append(
+                (value + income - previous_income - flow) / previous_value - ONE
+                if value is not None
+                and previous_value is not None
+                and previous_value > ZERO
+                and flow is not None
+                else None
+            )
+        previous_value, previous_income = value, income
+        on += timedelta(days=1)
+    # An initial investment has no preceding capital and therefore no return.
+    if start == min(row[0].date for row in rows):
+        returns = returns[1:]
+    result.performance = performance_statistics(result.series, returns)
+    return result
 
 
 def portfolio_dashboard(db: Session, user_id: UUID) -> PortfolioDashboard:
@@ -164,13 +237,7 @@ def portfolio_dashboard(db: Session, user_id: UUID) -> PortfolioDashboard:
     )
 
 
-def statistics_from_holdings(
-    rows,
-    rates: ExchangeRateHistory,
-    holdings: list[Holding],
-    today: date,
-    selected_range: PortfolioRange = "1R",
-) -> PortfolioStatistics:
+def external_flows(rows, rates: ExchangeRateHistory) -> dict[date, Decimal | None]:
     flows: dict[date, Decimal | None] = defaultdict(lambda: ZERO)
     for row in rows:
         transaction = row[0]
@@ -184,6 +251,17 @@ def statistics_from_holdings(
         else:
             sign = ONE if transaction.type == TransactionType.buy else -ONE
             flows[transaction.date] = previous + sign * operation.value * fx
+    return dict(flows)
+
+
+def statistics_from_holdings(
+    rows,
+    rates: ExchangeRateHistory,
+    holdings: list[Holding],
+    today: date,
+    selected_range: PortfolioRange = "1R",
+) -> PortfolioStatistics:
+    flows = external_flows(rows, rates)
     total_contrib = (
         sum((value for value in flows.values() if value is not None), ZERO)
         if all(value is not None for value in flows.values())

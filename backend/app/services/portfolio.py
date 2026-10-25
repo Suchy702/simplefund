@@ -492,7 +492,7 @@ def holdings_from_rows(
         position.exchange_rate_date = fx_date
         if position.asset_class == "Gotówka":
             position.value = position.qty * fx if fx is not None else None
-        elif position.asset_class in ("Akcje", "Kruszce"):
+        elif position.asset_class in ("Akcje", "Kruszce", "Kryptowaluty"):
             stock_id = UUID(position.id.split(":")[0])
             price = prices.get(stock_id)
             if price is not None:

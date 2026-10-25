@@ -1,7 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useSession } from '@/api/auth'
 import { apiRequest } from '@/api/client'
-import { generateSeries, MOCK_PERFORMANCE } from '@/mocks/portfolio'
 import type {
   BondFamily,
   BondOperationInput,
@@ -80,14 +79,7 @@ export const usePortfolioKpi = () => {
 }
 
 export const usePortfolioPerformance = (range: RangeKey) =>
-  useQuery({
-    queryKey: ['portfolio', 'mock-performance', range],
-    queryFn: () => ({
-      series: generateSeries(range),
-      performance: MOCK_PERFORMANCE[range],
-    }),
-    staleTime: Infinity,
-  })
+  usePortfolioStatistics(range)
 
 const usePortfolioDashboard = () => {
   const { data: session } = useSession()
