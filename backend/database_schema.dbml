@@ -246,3 +246,23 @@ Table polish_inflation {
     `rate_pct > -100 AND rate_pct < 10000` [name: 'ck_inflation_range']
   }
 }
+
+Table portfolio_history {
+  user_id uuid [pk, ref: > profiles.id]
+  status varchar(16) [not null, default: 'idle']
+  job_id uuid
+  requested_at timestamptz
+  heartbeat_at timestamptz
+  calculated_at timestamptz
+  error varchar(500)
+  payload jsonb [note: 'Private MAX series, range statistics and ledger fingerprint; backend access only']
+}
+
+Table history_source_cache {
+  key varchar(100) [pk, note: 'yahoo:symbol or fx:currency; public observations only']
+  payload jsonb [note: 'Covered date interval, observations, currency and splits']
+  lease_id uuid
+  busy_until timestamptz
+  retry_after timestamptz
+  error varchar(500)
+}

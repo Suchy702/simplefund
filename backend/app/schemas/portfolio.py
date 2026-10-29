@@ -162,6 +162,9 @@ class PortfolioKpi(ApiModel):
 class PortfolioPoint(ApiModel):
     date: Date
     value: Amount | None
+    contribution: Amount | None = None
+    benchmark: Amount | None = None
+    daily_return: Amount | None = None
 
 
 class PortfolioDashboard(ApiModel):

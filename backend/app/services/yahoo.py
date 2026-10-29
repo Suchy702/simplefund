@@ -207,15 +207,19 @@ def _enrich(quote: dict) -> StockInstrument:
     )
 
 
-def search_stocks(query: str, *, crypto: bool = False) -> list[StockInstrument]:
+def _normalize_query(query: str) -> str:
     # Unicode decomposition handles Ż/ó/etc.; ł needs an explicit replacement.
-    normalized = "".join(
+    return "".join(
         char
         for char in unicodedata.normalize(
             "NFKD", query.translate(str.maketrans("łŁ", "lL"))
         )
         if not unicodedata.combining(char)
     ).strip()
+
+
+def search_stocks(query: str, *, crypto: bool = False) -> list[StockInstrument]:
+    normalized = _normalize_query(query)
     key = f"{crypto}:{normalized.casefold()}"
     cached = _get(_searches, key)
     if cached is not None:

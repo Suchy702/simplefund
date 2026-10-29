@@ -1,5 +1,6 @@
 import json
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
+from functools import lru_cache
 from http.client import HTTPException
 from time import monotonic
 from urllib.error import HTTPError, URLError
@@ -33,6 +34,8 @@ EXTERNAL_SOURCES: dict[ExternalService, tuple[str, str]] = {
 
 
 def check_external_connection(service: ExternalService) -> ExternalConnectionCheck:
+    if service in ("history-yahoo", "history-fx"):
+        return _check_history_connection(service, int(monotonic() // 300))
     name, url = EXTERNAL_SOURCES[service]
     started = monotonic()
     status = "error"
@@ -56,6 +59,52 @@ def check_external_connection(service: ExternalService) -> ExternalConnectionChe
         checked_at=datetime.now(timezone.utc),
         response_time_ms=round((monotonic() - started) * 1000),
         source_url=url,
+    )
+
+
+@lru_cache(maxsize=8)
+def _check_history_connection(
+    service: str, cache_window: int
+) -> ExternalConnectionCheck:
+    from app.services.history_sources import fetch_fx_history, fetch_yahoo_history
+
+    started = monotonic()
+    end = datetime.now(timezone.utc).date() - timedelta(days=1)
+    start = end - timedelta(days=14)
+    yahoo = service == "history-yahoo"
+    url = (
+        "https://finance.yahoo.com/quote/AAPL/history/"
+        if yahoo
+        else "https://api.frankfurter.dev/v2/rates"
+    )
+    label = "Yahoo AAPL" if yahoo else "Frankfurter EUR/PLN"
+    status = "error"
+    try:
+        result = (
+            fetch_yahoo_history("AAPL", start, end)
+            if yahoo
+            else fetch_fx_history("EUR", start, end)
+        )
+        if len(result["observations"]) < 2:
+            raise ValueError("Insufficient historical observations")
+        dates = sorted(result["observations"])
+        detail = (
+            f"{label}: zweryfikowano {len(dates)} dziennych obserwacji "
+            f"({dates[0]} – {dates[-1]}). "
+            "Kontrola nie potwierdza kompletności danych w bazie."
+        )
+        status = "ok"
+    except Exception:
+        detail = (
+            f"{label}: nie udało się pobrać poprawnej serii historycznej. "
+            "Sprawdź połączenie lub dostępność danych dostawcy."
+        )
+    return ExternalConnectionCheck(
+        status=status,
+        detail=detail,
+        source_url=url,
+        checked_at=datetime.now(timezone.utc),
+        response_time_ms=round((monotonic() - started) * 1000),
     )
 
 

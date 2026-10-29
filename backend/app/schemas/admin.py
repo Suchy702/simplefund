@@ -3,7 +3,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-ExternalService = Literal["bonds", "nbp", "gus"]
+ExternalService = Literal["bonds", "nbp", "gus", "history-yahoo", "history-fx"]
 
 
 class ConnectionCheck(BaseModel):

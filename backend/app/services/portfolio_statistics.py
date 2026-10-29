@@ -1,8 +1,11 @@
 from calendar import monthrange
 from collections import defaultdict
-from datetime import date, timedelta
+from collections.abc import Callable
+from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 from math import exp, expm1, fsum, isfinite
+from time import monotonic
+from types import SimpleNamespace
 from uuid import UUID
 
 from sqlalchemy.orm import Session
@@ -12,6 +15,7 @@ from app.repositories.portfolio import (
     bond_valuation_sources,
     exchange_rates,
     stock_prices,
+    transaction_rows,
 )
 from app.schemas.portfolio import (
     Holding,
@@ -27,8 +31,8 @@ from app.services.exchange_rates import ExchangeRateHistory, exchange_rate_on
 from app.services.portfolio import (
     ONE,
     ZERO,
+    PortfolioLedger,
     allocation_from_holdings,
-    holdings_from_rows,
     load_portfolio,
     operation_from_row,
 )
@@ -154,11 +158,54 @@ def xirr(
 def portfolio_statistics(
     db: Session, user_id: UUID, selected_range: PortfolioRange = "1R"
 ) -> PortfolioStatistics:
-    """Return current KPIs and daily valuations from stored observations."""
+    """Read saved history; GET requests never trigger historical calculations."""
+    from app.services.portfolio_history import get_history
+
     rows, rates, holdings, today = load_portfolio(db, user_id)
     result = statistics_from_holdings(rows, rates, holdings, today, selected_range)
+    saved = get_history(db, user_id, selected_range)
+    result.series = saved.series
+    result.performance = saved.performance
+    return result
+
+
+def calculate_portfolio_statistics(
+    db: Session,
+    user_id: UUID,
+    selected_range: PortfolioRange = "1R",
+    *,
+    on_progress: Callable[[], None] | None = None,
+    split_events: dict[UUID, dict[str, str]] | None = None,
+    closed_prices_only: bool = False,
+) -> PortfolioStatistics:
+    """Return current KPIs and daily valuations from stored observations."""
+    rows = transaction_rows(db, user_id)
+    today = date.today()
     if not rows:
-        return result
+        return statistics_from_holdings(
+            rows, ExchangeRateHistory(()), [], today, selected_range
+        )
+    if split_events:
+        normalized = []
+        for row in rows:
+            transaction, cash, trade, stock, deposit, bond = row
+            factor = ONE
+            if trade is not None:
+                for when, ratio in split_events.get(trade.stock_id, {}).items():
+                    if transaction.date < date.fromisoformat(when) <= today:
+                        factor *= Decimal(ratio)
+                if factor != ONE:
+                    # Yahoo Close already uses post-split units. Keep actual
+                    # execution totals while expressing volumes in that basis.
+                    actual_value = operation_from_row(row).value
+                    trade = SimpleNamespace(
+                        stock_id=trade.stock_id,
+                        volume=trade.volume * factor,
+                        price_per_unit=trade.price_per_unit / factor,
+                        total_value=actual_value,
+                    )
+            normalized.append((transaction, cash, trade, stock, deposit, bond))
+        rows = normalized
 
     # Include sold instruments: they still contribute to historical valuations.
     market, manual = stock_prices(
@@ -167,6 +214,28 @@ def portfolio_statistics(
         [row[2].stock_id for row in rows if row[2] is not None],
         history=True,
     )
+    if split_events:
+        normalized_manual = []
+        for price in manual:
+            factor = ONE
+            for when, ratio in split_events.get(price.stock_id, {}).items():
+                if price.price_date < date.fromisoformat(when) <= today:
+                    factor *= Decimal(ratio)
+            normalized_manual.append(
+                SimpleNamespace(
+                    stock_id=price.stock_id,
+                    price_date=price.price_date,
+                    price=price.price / factor,
+                    currency=price.currency,
+                )
+            )
+        manual = normalized_manual
+    if closed_prices_only:
+        market = [
+            price
+            for price in market
+            if price.price_date < datetime.now(timezone.utc).date()
+        ]
     historical_rates = ExchangeRateHistory(exchange_rates(db))
     bonds = BondValuator(
         *bond_valuation_sources(
@@ -183,21 +252,37 @@ def portfolio_statistics(
     ]
     pending = [next(prices, None) for prices in observations]
     latest = [{}, {}]
+    ledger = PortfolioLedger(historical_rates, bonds)
+    operations = iter(rows)
+    pending_operation = next(operations, None)
     previous_value, previous_income = None, ZERO
+    series: list[PortfolioPoint] = []
     returns: list[Decimal | None] = []
+    contribution = (
+        sum((flow for when, flow in flows.items() if when < start), ZERO)
+        if all(flow is not None for when, flow in flows.items() if when < start)
+        else None
+    )
+    next_progress = monotonic()
     while on <= today:
+        if on_progress is not None and monotonic() >= next_progress:
+            on_progress()
+            next_progress = monotonic() + 10
+        # Rows are ordered by date and ledger order by the repository. Each
+        # operation changes the retained state exactly once, on its own date.
+        while pending_operation is not None and pending_operation[0].date <= on:
+            ledger.apply(pending_operation)
+            pending_operation = next(operations, None)
         for index, prices in enumerate(observations):
-            while pending[index] is not None and pending[index].price_date <= on:
-                price = pending[index]
+            price = pending[index]
+            while price is not None and price.price_date <= on:
                 latest[index][price.stock_id] = price
-                pending[index] = next(prices, None)
-        daily = holdings_from_rows(
-            rows,
-            historical_rates,
+                price = next(prices, None)
+            pending[index] = price
+        daily = ledger.snapshot(
             list(latest[0].values()),
             list(latest[1].values()),
             on,
-            bonds,
         )
         value = (
             sum((holding.value for holding in daily), ZERO)
@@ -206,9 +291,8 @@ def portfolio_statistics(
         )
         income = sum((holding.paid_interest or ZERO for holding in daily), ZERO)
         if on >= start:
-            result.series.append(PortfolioPoint(date=on, value=value))
             flow = flows.get(on, ZERO)
-            returns.append(
+            daily_return = (
                 (value + income - previous_income - flow) / previous_value - ONE
                 if value is not None
                 and previous_value is not None
@@ -216,12 +300,30 @@ def portfolio_statistics(
                 and flow is not None
                 else None
             )
+            contribution = (
+                contribution + flow
+                if contribution is not None and flow is not None
+                else None
+            )
+            series.append(
+                PortfolioPoint(
+                    date=on,
+                    value=value,
+                    contribution=contribution,
+                    daily_return=daily_return,
+                )
+            )
+            returns.append(daily_return)
         previous_value, previous_income = value, income
         on += timedelta(days=1)
     # An initial investment has no preceding capital and therefore no return.
     if start == min(row[0].date for row in rows):
         returns = returns[1:]
-    result.performance = performance_statistics(result.series, returns)
+    result = statistics_from_holdings(
+        rows, historical_rates, daily, today, selected_range
+    )
+    result.series = series
+    result.performance = performance_statistics(series, returns)
     return result
 
 

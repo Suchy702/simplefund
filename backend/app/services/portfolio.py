@@ -381,16 +381,29 @@ def holdings_from_rows(
     rows, rates, market, manual, on: date, bonds: BondValuator | None = None
 ) -> list[Holding]:
     """Value a portfolio snapshot using only observations available on its date."""
-    rates = (
-        rates if isinstance(rates, ExchangeRateHistory) else ExchangeRateHistory(rates)
-    )
-    positions: dict[str, Holding] = {}
-    deposit_terms: dict[str, DepositTransaction] = {}
-    bond_lots = defaultdict(list)
+    ledger = PortfolioLedger(rates, bonds)
     for row in rows:
+        if row[0].date <= on:
+            ledger.apply(row)
+    return ledger.snapshot(market, manual, on)
+
+
+class PortfolioLedger:
+    """Apply ordered operations once and value the retained positions on each date."""
+
+    def __init__(self, rates, bonds: BondValuator | None = None):
+        self.rates = (
+            rates
+            if isinstance(rates, ExchangeRateHistory)
+            else ExchangeRateHistory(rates)
+        )
+        self.bonds = bonds
+        self.positions: dict[str, Holding] = {}
+        self.deposit_terms: dict[str, DepositTransaction] = {}
+        self.bond_lots = defaultdict(list)
+
+    def apply(self, row) -> None:
         transaction, cash, stock_trade, stock, deposit, bond = row
-        if transaction.date > on:
-            continue
         operation = operation_from_row(row)
         if cash is not None:
             asset_id, ticker, quantity = "cash", transaction.currency.value, cash.value
@@ -411,14 +424,14 @@ def holdings_from_rows(
                 Decimal(bond.quantity),
             )
         else:
-            continue
+            return
         key = f"{asset_id}:{transaction.currency.value}"
         if deposit is not None:
-            deposit_terms[key] = deposit
+            self.deposit_terms[key] = deposit
         if bond is not None:
-            bond_lots[key].append((transaction, bond))
-        if key not in positions:
-            positions[key] = Holding(
+            self.bond_lots[key].append((transaction, bond))
+        if key not in self.positions:
+            self.positions[key] = Holding(
                 id=key,
                 ticker=ticker,
                 name=operation.name,
@@ -443,8 +456,8 @@ def holdings_from_rows(
                     )
                 ),
             )
-        position = positions[key]
-        fx = exchange_rate_on(rates, transaction.currency, transaction.date)
+        position = self.positions[key]
+        fx = exchange_rate_on(self.rates, transaction.currency, transaction.date)
         cost = (
             ZERO
             if operation.value == ZERO
@@ -476,104 +489,113 @@ def holdings_from_rows(
         if position.qty == ZERO:
             position.cost = ZERO
 
-    prices = {}
-    for price in [*market, *manual]:
-        if price.price_date > on:
-            continue
-        existing = prices.get(price.stock_id)
-        if existing is None or price.price_date >= existing.price_date:
-            prices[price.stock_id] = price
-    result = []
-    for position in positions.values():
-        if position.qty == ZERO:
-            continue
-        fx, fx_date = rates.on(position.currency, on)
-        position.exchange_rate = fx
-        position.exchange_rate_date = fx_date
-        if position.asset_class == "Gotówka":
-            position.value = position.qty * fx if fx is not None else None
-        elif position.asset_class in ("Akcje", "Kruszce", "Kryptowaluty"):
-            stock_id = UUID(position.id.split(":")[0])
-            price = prices.get(stock_id)
-            if price is not None:
-                position.price = price.price
-                position.price_date = price.price_date
-                if position.asset_class == "Kruszce":
-                    position.price_source = "Yahoo"
-                position.price_currency = price.currency
-                price_fx, price_fx_date = rates.on(price.currency, on)
-                position.exchange_rate = price_fx
-                position.exchange_rate_date = price_fx_date
-                position.value = (
-                    position.qty * price.price * price_fx
-                    if price_fx is not None
-                    else None
+    def snapshot(self, market, manual, on: date) -> list[Holding]:
+        """Value copies so daily prices never leak into the retained ledger state."""
+        prices = {}
+        for price in [*market, *manual]:
+            if price.price_date > on:
+                continue
+            existing = prices.get(price.stock_id)
+            if existing is None or price.price_date >= existing.price_date:
+                prices[price.stock_id] = price
+        result = []
+        for original in self.positions.values():
+            if original.qty == ZERO:
+                continue
+            position = original.model_copy()
+            fx, fx_date = self.rates.on(position.currency, on)
+            position.exchange_rate = fx
+            position.exchange_rate_date = fx_date
+            if position.asset_class == "Gotówka":
+                position.value = position.qty * fx if fx is not None else None
+            elif position.asset_class in ("Akcje", "Kruszce", "Kryptowaluty"):
+                stock_id = UUID(position.id.split(":")[0])
+                price = prices.get(stock_id)
+                if price is not None:
+                    position.price = price.price
+                    position.price_date = price.price_date
+                    if position.asset_class == "Kruszce":
+                        position.price_source = "Yahoo"
+                    position.price_currency = price.currency
+                    price_fx, price_fx_date = self.rates.on(price.currency, on)
+                    position.exchange_rate = price_fx
+                    position.exchange_rate_date = price_fx_date
+                    position.value = (
+                        position.qty * price.price * price_fx
+                        if price_fx is not None
+                        else None
+                    )
+            elif position.asset_class == "Lokata":
+                deposit = self.deposit_terms[position.id]
+                elapsed_days = max(
+                    0, (min(on, deposit.maturity_date) - deposit.start_date).days
                 )
-        elif position.asset_class == "Lokata":
-            deposit = deposit_terms[position.id]
-            elapsed_days = max(
-                0, (min(on, deposit.maturity_date) - deposit.start_date).days
-            )
-            # Simple gross interest using actual elapsed days and a 365-day year.
-            growth = ONE + deposit.annual_rate / 100 * Decimal(elapsed_days) / 365
-            position.value = position.qty * growth * fx if fx is not None else None
-        elif position.asset_class == "Obligacje skarbowe":
-            # Retail bonds use accrued gross interest rather than market quotes.
-            try:
-                if position.currency.value != "PLN":
-                    raise BondValuationError("Obligacje skarbowe wymagają waluty PLN")
-                values = []
-                for transaction, bond in bond_lots[position.id]:
-                    if transaction.type != TransactionType.buy:
+                # Simple gross interest using actual elapsed days and a 365-day year.
+                growth = ONE + deposit.annual_rate / 100 * Decimal(elapsed_days) / 365
+                position.value = position.qty * growth * fx if fx is not None else None
+            elif position.asset_class == "Obligacje skarbowe":
+                # Retail bonds use accrued gross interest rather than market quotes.
+                try:
+                    if position.currency.value != "PLN":
                         raise BondValuationError(
-                            "Brak obsługi rozliczenia sprzedaży obligacji"
+                            "Obligacje skarbowe wymagają waluty PLN"
                         )
-                    values.append(
-                        (bonds or BondValuator()).value(
-                            bond.series_code, transaction.date, bond.quantity, on
+                    values = []
+                    for transaction, bond in self.bond_lots[position.id]:
+                        if transaction.type != TransactionType.buy:
+                            raise BondValuationError(
+                                "Brak obsługi rozliczenia sprzedaży obligacji"
+                            )
+                        values.append(
+                            (self.bonds or BondValuator()).value(
+                                bond.series_code, transaction.date, bond.quantity, on
+                            )
                         )
+                    position.value = sum((item.value for item in values), ZERO)
+                    position.accrued_interest = sum(
+                        (item.accrued_interest for item in values), ZERO
                     )
-                position.value = sum((item.value for item in values), ZERO)
-                position.accrued_interest = sum(
-                    (item.accrued_interest for item in values), ZERO
-                )
-                position.paid_interest = sum(
-                    (item.paid_interest for item in values), ZERO
-                )
-                position.income_payments = [
-                    HoldingIncomePayment(date=payment.date, amount=payment.amount)
-                    for item in values
-                    for payment in item.payments
-                ]
-                position.price = position.value / position.qty
-                position.price_currency = position.currency
-                position.price_date = on
-                position.valuation_note = (
-                    "Szacunkowa wartość brutto z naliczonymi odsetkami. "
-                    "Bilans uwzględnia też "
-                    "wypłacone kupony brutto; nie są dopisywane do salda gotówki."
-                )
-                if any(
-                    (bonds.series[bond.series_code].family if bonds else None)
-                    in ("COI", "EDO", "ROS", "ROD")
-                    for _, bond in bond_lots[position.id]
-                ):
-                    position.valuation_note += (
-                        " Historyczne odczyty GUS uwzględniają późniejsze korekty, "
-                        "więc wynik może różnić się od tabel odsetkowych emitenta."
+                    position.paid_interest = sum(
+                        (item.paid_interest for item in values), ZERO
                     )
-                if all(item.maturity_date <= on for item in values):
-                    position.valuation_note += (
-                        " Termin wykupu minął: pokazana jest należność z wykupu, "
-                        "bez dalszego naliczania odsetek."
+                    position.income_payments = [
+                        HoldingIncomePayment(date=payment.date, amount=payment.amount)
+                        for item in values
+                        for payment in item.payments
+                    ]
+                    position.price = position.value / position.qty
+                    position.price_currency = position.currency
+                    position.price_date = on
+                    position.valuation_note = (
+                        "Szacunkowa wartość brutto z naliczonymi odsetkami. "
+                        "Bilans uwzględnia też "
+                        "wypłacone kupony brutto; nie są dopisywane do salda gotówki."
                     )
-            except BondValuationError as error:
-                position.valuation_note = str(error)
-        if position.value is not None and position.cost is not None:
-            position.change = (
-                position.value + (position.paid_interest or ZERO) - position.cost
-            )
-            if position.cost > ZERO:
-                position.change_pct = position.change / position.cost * 100
-        result.append(position)
-    return result
+                    if any(
+                        (
+                            self.bonds.series[bond.series_code].family
+                            if self.bonds
+                            else None
+                        )
+                        in ("COI", "EDO", "ROS", "ROD")
+                        for _, bond in self.bond_lots[position.id]
+                    ):
+                        position.valuation_note += (
+                            " Historyczne odczyty GUS uwzględniają późniejsze korekty, "
+                            "więc wynik może różnić się od tabel odsetkowych emitenta."
+                        )
+                    if all(item.maturity_date <= on for item in values):
+                        position.valuation_note += (
+                            " Termin wykupu minął: pokazana jest należność z wykupu, "
+                            "bez dalszego naliczania odsetek."
+                        )
+                except BondValuationError as error:
+                    position.valuation_note = str(error)
+            if position.value is not None and position.cost is not None:
+                position.change = (
+                    position.value + (position.paid_interest or ZERO) - position.cost
+                )
+                if position.cost > ZERO:
+                    position.change_pct = position.change / position.cost * 100
+            result.append(position)
+        return result

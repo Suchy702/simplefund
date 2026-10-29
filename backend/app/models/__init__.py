@@ -3,6 +3,8 @@ from app.models.bond_series import BondSeries as BondSeries
 from app.models.exchange_rates import ExchangeRate as ExchangeRate
 from app.models.polish_macro import NbpReferenceRate as NbpReferenceRate
 from app.models.polish_macro import PolishInflation as PolishInflation
+from app.models.portfolio_history import HistorySourceCache as HistorySourceCache
+from app.models.portfolio_history import PortfolioHistory as PortfolioHistory
 from app.models.prices import AssetPrice as AssetPrice
 from app.models.prices import ManualPrice as ManualPrice
 from app.models.profiles import Profile as Profile

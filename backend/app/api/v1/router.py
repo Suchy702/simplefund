@@ -20,6 +20,10 @@ from app.schemas.portfolio import (
     PortfolioRange,
     PortfolioStatistics,
 )
+from app.schemas.portfolio_history import (
+    HistoryRequest,
+    HistoryResponse,
+)
 from app.schemas.stocks import (
     CryptoOperationCreate,
     StockInstrument,
@@ -36,6 +40,11 @@ from app.services.portfolio import (
     list_operations,
     portfolio_allocation,
 )
+from app.services.portfolio_history import (
+    calculate_history,
+    get_history,
+    request_history,
+)
 from app.services.portfolio_statistics import portfolio_dashboard, portfolio_statistics
 from app.services.stock_prices import invalidate_user_prices, refresh_user_prices
 from app.services.stocks import create_stock_operation, list_held_stocks
@@ -43,6 +52,33 @@ from app.services.yahoo import search_stocks, suggest_stock_price
 
 router = APIRouter()
 router.include_router(xtb_router)
+
+
+@router.get("/portfolio/history", response_model=HistoryResponse)
+def history(
+    response: Response,
+    range: PortfolioRange = "1R",
+    user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    response.headers["Cache-Control"] = "no-store"
+    return get_history(db, UUID(user["sub"]), range)
+
+
+@router.post(
+    "/portfolio/history/recalculate", response_model=HistoryResponse, status_code=202
+)
+def recalculate_history(
+    data: HistoryRequest,
+    background_tasks: BackgroundTasks,
+    response: Response,
+    user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    job_id = request_history(db, user)
+    background_tasks.add_task(calculate_history, UUID(user["sub"]), job_id)
+    response.headers["Cache-Control"] = "no-store"
+    return get_history(db, UUID(user["sub"]))
 
 
 @router.get("/portfolio/dashboard", response_model=PortfolioDashboard)
