@@ -161,7 +161,21 @@ const AdminPage = ({ onBack }: { onBack: () => void }) => {
   const bonds = useExternalConnection('bonds', true)
   const nbp = useExternalConnection('nbp', true)
   const gus = useExternalConnection('gus', true)
+  const historyYahoo = useExternalConnection('history-yahoo', true)
+  const historyFx = useExternalConnection('history-fx', true)
   const sources = [
+    {
+      name: 'Historia notowań · Yahoo Finance',
+      description:
+        'Dzienne zamknięcia akcji, ETF, indeksów, krypto i futures; historyczne wyceny portfela. Kontrola serii AAPL z ostatnich 14 dni; wynik kontroli pamiętany do 5 minut.',
+      query: historyYahoo,
+    },
+    {
+      name: 'Historia kursów · Frankfurter',
+      description:
+        'Wykresy odczytują kursy do PLN wyłącznie z bazy, bez pobierania braków. Osobna kontrola dostawcy pobiera serię EUR/PLN z ostatnich 14 dni; wynik kontroli pamiętany do 5 minut.',
+      query: historyFx,
+    },
     {
       name: 'Obligacje skarbowe',
       description:

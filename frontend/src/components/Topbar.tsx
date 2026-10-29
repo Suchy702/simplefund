@@ -31,7 +31,9 @@ export const Topbar = ({
   return (
     <header className="grid grid-cols-[1fr_auto_1fr] items-center gap-4 border-b border-border bg-card px-8 py-3.5 shrink-0">
       <div className="flex items-center gap-2.5 text-lg font-semibold tracking-tight text-foreground">
-        <span>SimpleFund</span>
+        <span>
+          SimpleFund<span className="text-brand">.</span>
+        </span>
       </div>
 
       <div className="flex items-center gap-2">

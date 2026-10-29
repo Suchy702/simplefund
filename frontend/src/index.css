@@ -20,7 +20,7 @@
     --ink-4: oklch(72% 0.008 70);
 
     --brand: oklch(72% 0.16 65);
-    --brand-ink: oklch(45% 0.14 60);
+    --brand-ink: var(--brand);
     --brand-soft: oklch(96% 0.04 80);
     --primary-foreground: oklch(100% 0 0);
 

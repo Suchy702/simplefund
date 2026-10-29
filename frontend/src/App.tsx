@@ -8,12 +8,19 @@ import {
 import AdminPage from '@/pages/AdminPage'
 import DashboardPage from '@/pages/DashboardPage'
 import LoginPage from '@/pages/LoginPage'
+import LandingPage from '@/pages/LandingPage'
 import RegisterPage from '@/pages/RegisterPage'
 import { supabase } from '@/lib/supabase'
 import { useSession } from '@/api/auth'
 import { useProfileRole } from '@/api/admin'
 
-type AuthPage = 'login' | 'register'
+type AuthPage = 'home' | 'login' | 'register'
+
+const publicPaths: Record<AuthPage, string> = {
+  home: '/',
+  login: '/login',
+  register: '/register',
+}
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -25,11 +32,40 @@ const queryClient = new QueryClient({
 })
 
 const AppContent = () => {
-  const [authPage, setAuthPage] = useState<AuthPage>('login')
+  const [pathname, setPathname] = useState(() => window.location.pathname)
   const [page, setPage] = useState<'dashboard' | 'admin'>('dashboard')
   const { data: session, isLoading } = useSession()
   const { data: role } = useProfileRole()
   const qc = useQueryClient()
+
+  const navigatePublic = (next: AuthPage) => {
+    const path = publicPaths[next]
+    if (window.location.pathname !== path) {
+      window.history.pushState(null, '', path)
+    }
+    setPathname(path)
+    window.scrollTo(0, 0)
+  }
+
+  useEffect(() => {
+    const handlePopState = () => {
+      setPathname(window.location.pathname)
+      window.scrollTo(0, 0)
+    }
+    window.addEventListener('popstate', handlePopState)
+    return () => window.removeEventListener('popstate', handlePopState)
+  }, [])
+
+  useEffect(() => {
+    if (
+      session &&
+      (pathname === publicPaths.login || pathname === publicPaths.register)
+    ) {
+      window.history.replaceState(null, '', publicPaths.home)
+      setPathname(publicPaths.home)
+      window.scrollTo(0, 0)
+    }
+  }, [session, pathname])
 
   useEffect(() => {
     const {
@@ -60,10 +96,18 @@ const AppContent = () => {
     )
   }
 
-  if (authPage === 'login') {
-    return <LoginPage onGoToRegister={() => setAuthPage('register')} />
+  if (pathname === publicPaths.login) {
+    return <LoginPage onGoToRegister={() => navigatePublic('register')} />
   }
-  return <RegisterPage onGoToLogin={() => setAuthPage('login')} />
+  if (pathname === publicPaths.register) {
+    return <RegisterPage onGoToLogin={() => navigatePublic('login')} />
+  }
+  return (
+    <LandingPage
+      onGoToLogin={() => navigatePublic('login')}
+      onGoToRegister={() => navigatePublic('register')}
+    />
+  )
 }
 
 const App = () => (

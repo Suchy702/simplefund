@@ -131,6 +131,26 @@ export interface PortfolioDashboard {
   operations: Operation[]
 }
 
+export interface HistoryPoint {
+  date: string
+  value: number | null
+  contribution: number | null
+  dailyReturn: number | null
+}
+
+export interface PortfolioHistory {
+  status: 'idle' | 'running' | 'ready' | 'error'
+  calculatedAt: string | null
+  nextCalculationAt: string | null
+  serverTime: string
+  stale: boolean
+  error: string | null
+  warnings: string[]
+  range: RangeKey
+  series: HistoryPoint[]
+  performance: PerformanceStatistics | null
+}
+
 export interface CashOperationInput {
   operationType: (typeof CASH_OPERATION_TYPES)[number]
   value: string

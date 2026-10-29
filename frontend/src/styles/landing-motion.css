@@ -1,0 +1,305 @@
+.landing-page {
+  --landing-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  overflow-x: clip;
+}
+
+.landing-scroll-progress {
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: 50;
+  height: 3px;
+  pointer-events: none;
+  background: var(--brand);
+  transform: scaleX(var(--scroll-progress, 0));
+  transform-origin: left;
+}
+
+.landing-page[data-motion='on'] .landing-reveal {
+  opacity: 0;
+  translate: 0 22px;
+  transition:
+    opacity 650ms var(--landing-ease) var(--reveal-delay, 0ms),
+    translate 750ms var(--landing-ease) var(--reveal-delay, 0ms),
+    transform 350ms var(--landing-ease),
+    border-color 300ms ease,
+    box-shadow 350ms ease,
+    background-color 250ms ease;
+}
+
+.landing-page[data-motion='on'] .landing-reveal[data-visible='true'],
+.landing-page[data-motion='on'] .landing-reveal:focus-within {
+  opacity: 1;
+  translate: 0 0;
+}
+
+.landing-page[data-motion='on'] tbody tr.landing-reveal {
+  translate: none;
+}
+
+.landing-page .landing-card {
+  position: relative;
+  isolation: isolate;
+  transition:
+    transform 350ms var(--landing-ease),
+    border-color 300ms ease,
+    box-shadow 350ms ease,
+    background-color 250ms ease;
+}
+
+.landing-page .landing-draw {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+}
+
+.landing-page[data-motion='on']
+  .landing-card:not([data-visible='true'])
+  .landing-draw {
+  stroke-dashoffset: 1;
+}
+
+.landing-page[data-motion='on']
+  .landing-card[data-visible='true']
+  .landing-draw {
+  transition:
+    stroke-dashoffset 1.6s var(--landing-ease) 150ms,
+    stroke-width 250ms ease,
+    opacity 250ms ease;
+}
+
+.landing-page .landing-draw:focus,
+.landing-page .landing-draw:hover {
+  filter: drop-shadow(
+    0 0 4px color-mix(in oklch, var(--brand) 25%, transparent)
+  );
+}
+
+.landing-page button,
+.landing-page a {
+  transition:
+    transform 250ms var(--landing-ease),
+    color 200ms ease,
+    background-color 200ms ease,
+    box-shadow 250ms ease,
+    filter 250ms ease;
+}
+
+.landing-page button svg,
+.landing-page a svg,
+.landing-page .landing-asset svg,
+.landing-page .landing-legend > span:first-child {
+  transition: transform 300ms var(--landing-ease);
+}
+
+.landing-page .landing-primary-button {
+  position: relative;
+  overflow: hidden;
+}
+
+.landing-page .landing-primary-button::after {
+  content: '';
+  position: absolute;
+  inset: -50% auto -50% -70%;
+  width: 45%;
+  pointer-events: none;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgb(255 255 255 / 30%),
+    transparent
+  );
+  transform: skewX(-20deg);
+}
+
+.landing-page .landing-title-accent {
+  background: linear-gradient(
+    110deg,
+    var(--brand) 35%,
+    color-mix(in oklch, var(--brand), white 45%) 50%,
+    var(--brand) 65%
+  );
+  background-size: 250% 100%;
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  animation: landing-title-shine 7s ease-in-out infinite;
+}
+
+.landing-page .landing-backplate {
+  transform: rotate(2deg);
+  transition:
+    transform 350ms var(--landing-ease),
+    border-color 350ms ease;
+}
+
+.landing-page .landing-asset {
+  border-radius: var(--r-sm);
+  padding: 8px 4px;
+}
+
+.landing-page .landing-stat,
+.landing-page .landing-legend,
+.landing-page .landing-step,
+.landing-page .landing-import-item {
+  transition:
+    transform 300ms var(--landing-ease),
+    background-color 250ms ease,
+    border-color 250ms ease;
+}
+
+.landing-page .landing-legend {
+  border-radius: var(--r-sm);
+}
+
+.landing-page .landing-stat > p:nth-child(2) {
+  transition:
+    transform 300ms var(--landing-ease),
+    text-shadow 300ms ease;
+  transform-origin: left;
+}
+
+.landing-page tbody tr td {
+  transition:
+    background-color 250ms ease,
+    color 250ms ease;
+}
+
+.landing-page tbody tr td:first-child > div > span {
+  transition: transform 300ms var(--landing-ease);
+}
+
+.landing-page .landing-cta {
+  background-image: radial-gradient(
+    ellipse at 100% 0%,
+    var(--brand-soft),
+    transparent 65%
+  );
+}
+
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .landing-page
+    .landing-hero-preview
+    figure:has(> .landing-card:hover)
+    > .landing-backplate {
+    transform: translate(4px, 2px) rotate(3deg);
+    border-color: color-mix(in oklch, var(--brand) 40%, var(--border));
+  }
+
+  .landing-page .landing-card:hover {
+    background-color: color-mix(
+      in oklch,
+      var(--bg-elevated) 96%,
+      var(--brand) 4%
+    );
+    border-color: color-mix(in oklch, var(--brand) 50%, var(--border));
+    box-shadow: 0 12px 30px color-mix(in oklch, var(--ink) 8%, transparent);
+  }
+
+  .landing-page .landing-stat:hover,
+  .landing-page .landing-legend:hover,
+  .landing-page .landing-step:hover {
+    background-color: var(--brand-soft);
+  }
+
+  .landing-page button:hover,
+  .landing-page a:hover {
+    transform: translateY(-2px);
+  }
+
+  .landing-page button:active,
+  .landing-page a:active {
+    transform: translateY(0) scale(0.97);
+  }
+
+  .landing-page button:hover svg,
+  .landing-page a:hover svg {
+    transform: translateX(3px);
+  }
+
+  .landing-page .landing-primary-button:hover::after {
+    animation: landing-button-shine 650ms ease;
+  }
+
+  .landing-page .landing-primary-button:hover {
+    box-shadow: 0 6px 20px color-mix(in oklch, var(--brand) 30%, transparent);
+  }
+
+  .landing-page .landing-asset:hover {
+    transform: translateY(-4px);
+    background: var(--brand-soft);
+    color: var(--brand);
+  }
+
+  .landing-page .landing-asset:hover svg {
+    transform: rotate(-12deg) scale(1.18);
+  }
+
+  .landing-page .landing-stat:hover > p:nth-child(2) {
+    transform: scale(1.06);
+    text-shadow: 0 3px 15px color-mix(in oklch, var(--brand) 15%, transparent);
+  }
+
+  .landing-page .landing-legend:hover,
+  .landing-page .landing-step:hover {
+    transform: translateX(4px);
+  }
+
+  .landing-page .landing-legend:hover > span:first-child {
+    transform: scale(1.4) rotate(15deg);
+  }
+
+  .landing-page .landing-import-item:hover {
+    border-color: var(--brand);
+    transform: translateY(-2px);
+  }
+
+  .landing-page tbody tr:hover td {
+    background: var(--brand-soft);
+  }
+
+  .landing-page tbody tr:hover td:first-child > div > span {
+    transform: rotate(-6deg) scale(1.12);
+  }
+}
+
+@keyframes landing-title-shine {
+  0%,
+  100% {
+    background-position: 100% 50%;
+  }
+  50% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes landing-button-shine {
+  to {
+    left: 140%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-page *,
+  .landing-page *::before,
+  .landing-page *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .landing-page .landing-reveal {
+    opacity: 1 !important;
+    translate: none !important;
+  }
+
+  .landing-page .landing-backplate {
+    transform: rotate(2deg);
+  }
+
+  .landing-page .landing-title-accent {
+    background: none;
+    color: var(--brand);
+  }
+
+  .landing-page .landing-draw {
+    stroke-dashoffset: 0 !important;
+  }
+}

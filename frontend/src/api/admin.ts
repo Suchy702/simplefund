@@ -131,7 +131,7 @@ export const useCryptoConnection = (enabled: boolean) => {
 }
 
 export const useExternalConnection = (
-  service: 'bonds' | 'nbp' | 'gus',
+  service: 'bonds' | 'nbp' | 'gus' | 'history-yahoo' | 'history-fx',
   enabled: boolean
 ) => {
   const { data: session } = useSession()
@@ -142,7 +142,7 @@ export const useExternalConnection = (
       apiRequest<ConnectionCheck>(
         `/admin/connections/sources/${service}`,
         userId!,
-        { signal: AbortSignal.any([signal, AbortSignal.timeout(15_000)]) }
+        { signal: AbortSignal.any([signal, AbortSignal.timeout(30_000)]) }
       ),
     enabled: enabled && Boolean(userId),
     staleTime: 0,

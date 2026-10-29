@@ -10,7 +10,7 @@ import type {
   MetalInstrument,
   MetalOperationInput,
   Operation,
-  PortfolioPoint,
+  PortfolioHistory,
   PortfolioDashboard,
   PortfolioStatistics,
   RangeKey,
@@ -78,8 +78,47 @@ export const usePortfolioKpi = () => {
   return { ...query, data: query.data?.kpi }
 }
 
-export const usePortfolioPerformance = (range: RangeKey) =>
-  usePortfolioStatistics(range)
+export const usePortfolioPerformance = (range: RangeKey) => {
+  const { data: session } = useSession()
+  const userId = session?.user.id
+  return useQuery({
+    queryKey: ['portfolio', userId, 'history', range],
+    queryFn: ({ signal }) =>
+      apiRequest<PortfolioHistory>(
+        `/portfolio/history?range=${range}`,
+        userId!,
+        { signal }
+      ),
+    enabled: Boolean(userId),
+    staleTime: 30_000,
+    refetchInterval: (query) =>
+      query.state.data?.status === 'running' ? 3000 : false,
+    retry: false,
+  })
+}
+
+export const useRecalculateHistory = () => {
+  const queryClient = useQueryClient()
+  const { data: session } = useSession()
+  const userId = session?.user.id
+  return useMutation({
+    mutationFn: () => {
+      if (!userId) throw new Error('Zaloguj się ponownie.')
+      return apiRequest<PortfolioHistory>(
+        '/portfolio/history/recalculate',
+        userId,
+        {
+          method: 'POST',
+          body: JSON.stringify({}),
+        }
+      )
+    },
+    onSettled: () =>
+      queryClient.invalidateQueries({
+        queryKey: ['portfolio', userId, 'history'],
+      }),
+  })
+}
 
 const usePortfolioDashboard = () => {
   const { data: session } = useSession()
@@ -273,12 +312,10 @@ export const useAddDepositOperation = () => {
 
 export const usePortfolioSeries = (range: RangeKey) => {
   const query = usePortfolioPerformance(range)
-  const series = query.data?.series
   // Do not connect chart points across dates with unavailable valuations.
-  const data: PortfolioPoint[] | undefined = series
-    ? series.every((point): point is PortfolioPoint => point.value !== null)
-      ? series
-      : []
-    : undefined
-  return { ...query, data, change: query.data?.performance?.change }
+  return {
+    ...query,
+    data: query.data?.series,
+    change: query.data?.performance?.change,
+  }
 }

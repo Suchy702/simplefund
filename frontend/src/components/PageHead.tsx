@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import {
   Banknote,
-  Bitcoin,
   Download,
   Gem,
   Landmark,
@@ -18,6 +17,7 @@ import {
 } from '@/components/modals'
 import { Button } from '@/components/ui/button'
 import { PolishEagleIcon } from '@/components/PolishEagleIcon'
+import { CryptoIcon } from '@/components/CryptoIcon'
 import { ImportXtbModal } from '@/components/modals/ImportXtbModal'
 import {
   DropdownMenu,
@@ -105,7 +105,7 @@ export const PageHead = ({ asOfDate, syncedMinutesAgo }: PageHeadProps) => {
                 className="cursor-pointer gap-2 text-brand-ink focus:bg-brand focus:text-primary-foreground"
                 onSelect={() => setCryptoModalOpen(true)}
               >
-                <Bitcoin size={15} />
+                <CryptoIcon size={15} />
                 Kryptowaluty
               </DropdownMenuItem>
               <DropdownMenuItem

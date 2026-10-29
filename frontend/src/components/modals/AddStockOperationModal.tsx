@@ -3,7 +3,8 @@ import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { format } from 'date-fns'
-import { Bitcoin, TrendingUp } from 'lucide-react'
+import { TrendingUp } from 'lucide-react'
+import { CryptoIcon } from '@/components/CryptoIcon'
 
 import {
   useAddStockOperation,
@@ -66,7 +67,7 @@ export const AddStockOperationModal = ({
   assetType = 'stocks',
 }: AddStockOperationModalProps) => {
   const isCrypto = assetType === 'crypto'
-  const Icon = isCrypto ? Bitcoin : TrendingUp
+  const Icon = isCrypto ? CryptoIcon : TrendingUp
   const [query, setQuery] = useState('')
   const [debouncedQuery, setDebouncedQuery] = useState('')
   const [selected, setSelected] = useState<StockInstrument | null>(null)

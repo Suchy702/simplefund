@@ -84,7 +84,7 @@ export const HoldingsTable = () => {
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
                         <span className="font-mono tabular">
-                          {fmtNumber(h.qty, h.class === 'Kryptowaluty' ? 8 : 2)}
+                          {fmtNumber(h.qty)}
                         </span>
                         {h.quantityUnit && (
                           <span className="font-mono text-tiny text-ink-3">
@@ -108,10 +108,7 @@ export const HoldingsTable = () => {
                         <div className="flex flex-col items-end">
                           <div className="flex items-center gap-1">
                             <span className="font-mono tabular">
-                              {fmtNumber(
-                                h.price,
-                                h.class === 'Kryptowaluty' ? 12 : 2
-                              )}
+                              {fmtNumber(h.price)}
                             </span>
                             <span className="font-mono text-tiny text-ink-3">
                               {h.priceCurrency ?? h.currency}

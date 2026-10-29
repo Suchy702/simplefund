@@ -1,250 +1,288 @@
-import { useMemo, useRef, useState } from 'react'
+import { useId, useMemo, useRef, useState } from 'react'
 
-import { Skeleton } from '@/components/ui/skeleton'
-import { usePortfolioSeries } from '@/api/portfolio'
 import { useElementWidth } from '@/hooks/useElementWidth'
 import { fmtMoney } from '@/lib/formatters'
 import { formatSeriesDate } from '@/lib/performance'
-import type { RangeKey } from '@/types/portfolio'
+import type { HistoryPoint } from '@/types/portfolio'
 
-const PAD_LEFT = 8
-const PAD_RIGHT = 56
-const PAD_TOP = 12
-const PAD_BOTTOM = 30
-
-const smoothPath = (points: { x: number; y: number }[]): string => {
-  if (points.length === 0) return ''
-  let d = `M ${points[0].x.toFixed(2)} ${points[0].y.toFixed(2)}`
-  for (let i = 0; i < points.length - 1; i++) {
-    const p0 = points[i - 1] || points[i]
-    const p1 = points[i]
-    const p2 = points[i + 1]
-    const p3 = points[i + 2] || p2
-    const t = 0.18
-    const c1x = p1.x + (p2.x - p0.x) * t
-    const c1y = p1.y + (p2.y - p0.y) * t
-    const c2x = p2.x - (p3.x - p1.x) * t
-    const c2y = p2.y - (p3.y - p1.y) * t
-    d += ` C ${c1x.toFixed(2)} ${c1y.toFixed(2)} ${c2x.toFixed(2)} ${c2y.toFixed(2)} ${p2.x.toFixed(2)} ${p2.y.toFixed(2)}`
-  }
-  return d
-}
+const LEFT = 8
+const RIGHT = 92
+const TOP = 16
+const BOTTOM = 30
+type ValueKey = 'value' | 'contribution'
 
 interface PerformanceChartProps {
-  range: RangeKey
+  series: HistoryPoint[]
+  showContribution: boolean
   height?: number
 }
 
 export const PerformanceChart = ({
-  range,
+  series,
+  showContribution,
   height = 300,
 }: PerformanceChartProps) => {
-  const { data, isLoading, change } = usePortfolioSeries(range)
   const wrapRef = useRef<HTMLDivElement>(null)
+  const areaGradientId = `portfolio-area-${useId().replace(/:/g, '')}`
   const width = useElementWidth(wrapRef, 800)
-  const [hover, setHover] = useState<{
-    range: RangeKey
-    idx: number
-  } | null>(null)
-
-  const innerW = Math.max(100, width - PAD_LEFT - PAD_RIGHT)
-  const innerH = height - PAD_TOP - PAD_BOTTOM
-
+  const [hoverDate, setHoverDate] = useState<string | null>(null)
+  const lines: {
+    key: ValueKey
+    label: string
+    color: string
+  }[] = [
+    { key: 'value', label: 'Portfel', color: 'var(--pos)' },
+    ...(showContribution
+      ? [
+          {
+            key: 'contribution' as const,
+            label: 'Wkład własny',
+            color: '#3b82f6',
+          },
+        ]
+      : []),
+  ]
+  const innerW = Math.max(1, width - LEFT - RIGHT)
+  const innerH = height - TOP - BOTTOM
   const computed = useMemo(() => {
-    if (!data || data.length === 0) return null
-    const dataMin = Math.min(...data.map((point) => point.value))
-    const dataMax = Math.max(...data.map((point) => point.value))
-    const step = 20000
-    const min = Math.floor((dataMin * 0.96) / step) * step
-    const max = Math.ceil((dataMax * 1.04) / step) * step
-    const xStep = innerW / Math.max(1, data.length - 1)
-    const x = (i: number) => PAD_LEFT + i * xStep
-    const y = (v: number) =>
-      PAD_TOP + innerH * (1 - (v - min) / (max - min || step))
-    const points = data.map((point, i) => ({ x: x(i), y: y(point.value) }))
-    const linePath = smoothPath(points)
-    const areaPath = `${linePath} L ${x(data.length - 1).toFixed(2)} ${(PAD_TOP + innerH).toFixed(2)} L ${PAD_LEFT.toFixed(2)} ${(PAD_TOP + innerH).toFixed(2)} Z`
-    const gridY: number[] = []
-    for (let v = min; v <= max + 0.001; v += step) gridY.push(v)
-    return { x, y, xStep, linePath, areaPath, gridY, min, max }
-  }, [data, innerW, innerH])
-
-  const hoveredPoint = hover?.range === range ? data?.[hover.idx] : undefined
-  const activeHover =
-    hoveredPoint && hover && computed
-      ? {
-          px: computed.x(hover.idx),
-          py: computed.y(hoveredPoint.value),
-          val: hoveredPoint.value,
-          date: formatSeriesDate(hoveredPoint.date),
+    const keys: ValueKey[] = [
+      'value',
+      ...(showContribution ? ['contribution' as const] : []),
+    ]
+    let minimum = Infinity
+    let maximum = -Infinity
+    for (const point of series) {
+      for (const key of keys) {
+        const value = point[key]
+        if (value !== null) {
+          minimum = Math.min(minimum, value)
+          maximum = Math.max(maximum, value)
         }
-      : null
-
-  if (isLoading) {
-    return (
-      <div ref={wrapRef} style={{ height }} className="w-full">
-        <Skeleton className="h-full w-full" />
-      </div>
+      }
+    }
+    if (!Number.isFinite(minimum)) return null
+    const padding = Math.max(
+      (maximum - minimum) * 0.08,
+      Math.abs(maximum) * 0.02,
+      1
     )
-  }
+    minimum -= padding
+    maximum += padding
+    const xStep = innerW / Math.max(1, series.length - 1)
+    const x = (index: number) => LEFT + index * xStep
+    const y = (value: number) =>
+      TOP + (innerH * (maximum - value)) / (maximum - minimum)
+    const paths = Object.fromEntries(
+      keys.map((key) => {
+        let path = ''
+        let connected = false
+        series.forEach((point, index) => {
+          const value = point[key]
+          if (value === null) {
+            connected = false
+            return
+          }
+          // Straight segments preserve supplied values without spline overshoot.
+          path += `${connected ? ' L' : ' M'} ${x(index).toFixed(2)} ${y(value).toFixed(2)}`
+          connected = true
+        })
+        return [key, path]
+      })
+    )
+    const areaPaths: string[] = []
+    let segment = ''
+    let firstX = 0
+    let lastX = 0
+    const closeArea = () => {
+      if (!segment) return
+      const baseline = (TOP + innerH).toFixed(2)
+      areaPaths.push(
+        `${segment} L ${lastX.toFixed(2)} ${baseline} L ${firstX.toFixed(2)} ${baseline} Z`
+      )
+      segment = ''
+    }
+    series.forEach((point, index) => {
+      if (point.value === null) {
+        closeArea()
+        return
+      }
+      const px = x(index)
+      if (!segment) firstX = px
+      segment += `${segment ? ' L' : 'M'} ${px.toFixed(2)} ${y(point.value).toFixed(2)}`
+      lastX = px
+    })
+    closeArea()
+    const ticks = Array.from(
+      { length: 5 },
+      (_, index) => minimum + ((maximum - minimum) * index) / 4
+    )
+    return { x, y, xStep, paths, areaPaths, ticks }
+  }, [series, showContribution, innerW, innerH])
 
-  if (!data || !computed) {
+  const hoverIndex = hoverDate
+    ? series.findIndex((point) => point.date === hoverDate)
+    : -1
+  const hovered = hoverIndex >= 0 ? series[hoverIndex] : null
+  if (!computed || series.length === 0) {
     return (
       <div
         ref={wrapRef}
-        style={{ height }}
+        style={{ height: Math.min(height, 96) }}
         className="flex items-center justify-center text-ink-3"
       >
-        Brak pełnej historii wycen.
+        Brak wyceny w tym okresie.
       </div>
     )
   }
-
-  const lineColor =
-    change !== undefined && change < 0 ? 'var(--neg)' : 'var(--pos)'
-  const labelCount = Math.min(5, data.length)
-  const xLabels = Array.from({ length: labelCount }, (_, index) => {
-    const pointIndex = Math.round(
-      (index * (data.length - 1)) / Math.max(1, labelCount - 1)
-    )
-    return { index: pointIndex, label: formatSeriesDate(data[pointIndex].date) }
-  })
-  const gradId = `areaGrad-${range}`
-
-  function onMove(e: React.MouseEvent<HTMLDivElement>) {
-    if (!wrapRef.current || !data || !computed) return
-    const rect = wrapRef.current.getBoundingClientRect()
-    const px = e.clientX - rect.left
-    const idx = Math.max(
-      0,
-      Math.min(data.length - 1, Math.round((px - PAD_LEFT) / computed.xStep))
-    )
-    setHover({ range, idx })
-  }
-
+  const labelCount = Math.min(5, series.length)
   return (
-    <div
-      ref={wrapRef}
-      onMouseMove={onMove}
-      onMouseLeave={() => setHover(null)}
-      className="relative w-full"
-      style={{ height }}
-    >
-      <svg
-        viewBox={`0 0 ${width} ${height}`}
-        preserveAspectRatio="none"
-        className="block w-full"
+    <div ref={wrapRef}>
+      <div
+        className="relative w-full"
         style={{ height }}
+        onMouseMove={(event) => {
+          const position =
+            event.clientX - event.currentTarget.getBoundingClientRect().left
+          const index = Math.max(
+            0,
+            Math.min(
+              series.length - 1,
+              Math.round((position - LEFT) / computed.xStep)
+            )
+          )
+          setHoverDate(series[index].date)
+        }}
+        onMouseLeave={() => setHoverDate(null)}
       >
-        <defs>
-          <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={lineColor} stopOpacity="0.12" />
-            <stop offset="100%" stopColor={lineColor} stopOpacity="0" />
-          </linearGradient>
-        </defs>
-
-        {computed.gridY.map((g, i) => (
-          <line
-            key={`yg-${i}`}
-            x1={PAD_LEFT}
-            x2={PAD_LEFT + innerW}
-            y1={computed.y(g)}
-            y2={computed.y(g)}
-            stroke="var(--border)"
-            strokeWidth="1"
-            opacity="0.5"
+        <svg
+          viewBox={`0 0 ${width} ${height}`}
+          className="block w-full"
+          style={{ height }}
+          role="img"
+          aria-label="Historia wartości portfela w PLN"
+        >
+          <defs>
+            <linearGradient
+              id={areaGradientId}
+              gradientUnits="userSpaceOnUse"
+              x1="0"
+              y1={TOP}
+              x2="0"
+              y2={TOP + innerH}
+            >
+              <stop offset="0%" stopColor="var(--pos)" stopOpacity="0.12" />
+              <stop offset="100%" stopColor="var(--pos)" stopOpacity="0" />
+            </linearGradient>
+          </defs>
+          {computed.ticks.map((tick, index) => (
+            <g key={index}>
+              <line
+                x1={LEFT}
+                x2={LEFT + innerW}
+                y1={computed.y(tick)}
+                y2={computed.y(tick)}
+                stroke="var(--border)"
+                opacity="0.5"
+              />
+              <text
+                x={width - 4}
+                y={computed.y(tick) + 4}
+                textAnchor="end"
+                fontSize="11"
+                fill="var(--ink-3)"
+              >
+                {tick.toLocaleString('pl-PL', { maximumFractionDigits: 0 })}
+              </text>
+            </g>
+          ))}
+          <path
+            d={computed.areaPaths.join(' ')}
+            fill={`url(#${areaGradientId})`}
+            pointerEvents="none"
           />
-        ))}
-        {computed.gridY.map((g, i) => (
-          <text
-            key={`yl-${i}`}
-            x={width - 8}
-            y={computed.y(g) + 3}
-            textAnchor="end"
-            fontSize="11"
-            fill="var(--ink-3)"
-          >
-            {(g / 1000).toFixed(0)}k
-          </text>
-        ))}
-
-        <line
-          x1={PAD_LEFT}
-          x2={PAD_LEFT + innerW}
-          y1={PAD_TOP + innerH}
-          y2={PAD_TOP + innerH}
-          stroke="var(--border)"
-          strokeWidth="1"
-        />
-
-        <path d={computed.areaPath} fill={`url(#${gradId})`} />
-        <path
-          d={computed.linePath}
-          fill="none"
-          stroke={lineColor}
-          strokeWidth="1.5"
-          strokeLinejoin="round"
-          strokeLinecap="round"
-        />
-        {data.length === 1 && (
-          <circle
-            cx={computed.x(0)}
-            cy={computed.y(data[0].value)}
-            r="3"
-            fill={lineColor}
-          />
-        )}
-
-        {activeHover && (
-          <>
+          {lines.map((line) => (
+            <g key={line.key}>
+              <path
+                d={computed.paths[line.key]}
+                fill="none"
+                stroke={line.color}
+                strokeWidth="1.7"
+                strokeLinejoin="round"
+                strokeLinecap="round"
+              />
+              {series.map((point, index) =>
+                point[line.key] !== null &&
+                (index === 0 || series[index - 1][line.key] === null) &&
+                (index === series.length - 1 ||
+                  series[index + 1][line.key] === null) ? (
+                  <circle
+                    key={point.date}
+                    cx={computed.x(index)}
+                    cy={computed.y(point[line.key]!)}
+                    r="2.5"
+                    fill={line.color}
+                  />
+                ) : null
+              )}
+            </g>
+          ))}
+          {hovered && (
             <line
-              x1={activeHover.px}
-              x2={activeHover.px}
-              y1={PAD_TOP}
-              y2={PAD_TOP + innerH}
+              x1={computed.x(hoverIndex)}
+              x2={computed.x(hoverIndex)}
+              y1={TOP}
+              y2={TOP + innerH}
               stroke="var(--ink-3)"
-              strokeWidth="1"
               strokeDasharray="3 3"
             />
-            <circle
-              cx={activeHover.px}
-              cy={activeHover.py}
-              r="4.5"
-              fill={lineColor}
-              stroke="var(--bg-elevated)"
-              strokeWidth="2"
-            />
-          </>
-        )}
-
-        {xLabels.map((tick, i) => (
-          <text
-            key={`xl-${i}`}
-            x={computed.x(tick.index)}
-            y={height - 8}
-            textAnchor={
-              i === 0 ? 'start' : i === xLabels.length - 1 ? 'end' : 'middle'
-            }
-            fontSize="11"
-            fill="var(--ink-3)"
+          )}
+          {Array.from({ length: labelCount }, (_, index) => {
+            const pointIndex = Math.round(
+              (index * (series.length - 1)) / Math.max(1, labelCount - 1)
+            )
+            return (
+              <text
+                key={index}
+                x={computed.x(pointIndex)}
+                y={height - 6}
+                textAnchor={
+                  index === 0
+                    ? 'start'
+                    : index === labelCount - 1
+                      ? 'end'
+                      : 'middle'
+                }
+                fontSize="11"
+                fill="var(--ink-3)"
+              >
+                {formatSeriesDate(series[pointIndex].date)}
+              </text>
+            )
+          })}
+        </svg>
+        {hovered && (
+          <div
+            className="pointer-events-none absolute top-0 z-10 max-w-[280px] rounded-sm border border-border bg-card px-3 py-2 text-xs shadow-md"
+            style={{
+              left: Math.max(
+                0,
+                Math.min(width - 260, computed.x(hoverIndex) - 100)
+              ),
+            }}
           >
-            {tick.label}
-          </text>
-        ))}
-      </svg>
-
-      <div
-        className="pointer-events-none absolute -translate-x-1/2 -translate-y-[110%] rounded-sm bg-foreground px-2.5 py-2 text-xs text-card shadow-md transition-opacity"
-        style={{
-          left: activeHover ? activeHover.px : 0,
-          top: activeHover ? activeHover.py : 0,
-          opacity: activeHover ? 1 : 0,
-        }}
-      >
-        <div className="mb-0.5 text-tiny text-ink-4">{activeHover?.date}</div>
-        <div className="font-mono tabular font-semibold">
-          {activeHover ? fmtMoney(activeHover.val, 'PLN') : ''}
-        </div>
+            <p className="mb-1 text-ink-3">{formatSeriesDate(hovered.date)}</p>
+            {lines.map((line) => (
+              <p key={line.key} className="flex justify-between gap-3">
+                <span>{line.label}</span>
+                <span className="font-mono tabular">
+                  {hovered[line.key] === null
+                    ? 'Brak wyceny'
+                    : fmtMoney(hovered[line.key]!, 'PLN')}
+                </span>
+              </p>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )
