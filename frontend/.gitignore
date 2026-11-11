@@ -9,3 +9,5 @@ dist-ssr
 .env.*.local
 *.log
 *.tsbuildinfo
+.vercel
+.env*

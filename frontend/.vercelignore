@@ -1,0 +1,9 @@
+.env*
+.agents
+.claude
+.git
+.vercel
+.vite
+node_modules
+dist
+*.tsbuildinfo

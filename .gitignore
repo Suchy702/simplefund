@@ -10,6 +10,7 @@ dist/
 
 # Env
 .env
+.vercel/
 
 # IDE / local config
 .claude/settings.local.json
