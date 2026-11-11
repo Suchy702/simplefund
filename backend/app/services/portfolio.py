@@ -47,7 +47,7 @@ ALLOCATION_CLASSES = {
     "Gotówka": "var(--cat-3)",
     "Obligacje skarbowe": "var(--cat-4)",
     "Kruszce": "oklch(68% 0.13 90)",
-    "Kryptowaluty": "oklch(67% 0.17 55)",
+    "Kryptowaluty": "#DB4D86",
 }
 
 

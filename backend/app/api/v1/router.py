@@ -8,8 +8,13 @@ from app.api.v1.xtb import router as xtb_router
 from app.database import get_db
 from app.dependencies import get_current_user
 from app.models.enums import Currency
+from app.models.metals import Metal
 from app.schemas.bonds import BondFamily, BondOperationCreate, BondSeriesOption
-from app.schemas.metals import MetalInstrument, MetalOperationCreate
+from app.schemas.metals import (
+    MetalInstrument,
+    MetalOperationCreate,
+    MetalPriceSuggestion,
+)
 from app.schemas.portfolio import (
     CashOperationCreate,
     DepositOperationCreate,
@@ -31,6 +36,7 @@ from app.schemas.stocks import (
     StockPriceSuggestion,
 )
 from app.services.bonds import create_bond_operation, list_bond_series
+from app.services.metal_prices import suggest_metal_price
 from app.services.metals import create_metal_operation, list_metals
 from app.services.portfolio import (
     create_cash_operation,
@@ -150,6 +156,16 @@ def add_bond(
     db: Session = Depends(get_db),
 ):
     return create_bond_operation(db, user, data)
+
+
+@router.get("/metals/price", response_model=MetalPriceSuggestion)
+def metal_price_suggestion(
+    metal: Metal = Query(),
+    on: date = Query(alias="date"),
+    currency: Currency = Query(),
+    user: dict = Depends(get_current_user),
+):
+    return suggest_metal_price(metal, on, currency)
 
 
 @router.post("/transactions/metals", response_model=Operation, status_code=201)

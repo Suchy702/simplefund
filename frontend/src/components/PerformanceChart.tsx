@@ -1,4 +1,4 @@
-import { useId, useMemo, useRef, useState } from 'react'
+import { useEffect, useId, useMemo, useRef, useState } from 'react'
 
 import { useElementWidth } from '@/hooks/useElementWidth'
 import { fmtMoney } from '@/lib/formatters'
@@ -15,17 +15,34 @@ interface PerformanceChartProps {
   series: HistoryPoint[]
   showContribution: boolean
   height?: number
+  hideValueLabelsOnMobile?: boolean
 }
 
 export const PerformanceChart = ({
   series,
   showContribution,
   height = 300,
+  hideValueLabelsOnMobile = false,
 }: PerformanceChartProps) => {
   const wrapRef = useRef<HTMLDivElement>(null)
   const areaGradientId = `portfolio-area-${useId().replace(/:/g, '')}`
   const width = useElementWidth(wrapRef, 800)
   const [hoverDate, setHoverDate] = useState<string | null>(null)
+  const [isMobile, setIsMobile] = useState(
+    () =>
+      hideValueLabelsOnMobile &&
+      window.matchMedia('(max-width: 639.98px)').matches
+  )
+
+  useEffect(() => {
+    if (!hideValueLabelsOnMobile) return
+    const query = window.matchMedia('(max-width: 639.98px)')
+    const update = () => setIsMobile(query.matches)
+    update()
+    query.addEventListener('change', update)
+    return () => query.removeEventListener('change', update)
+  }, [hideValueLabelsOnMobile])
+
   const lines: {
     key: ValueKey
     label: string
@@ -42,7 +59,8 @@ export const PerformanceChart = ({
         ]
       : []),
   ]
-  const innerW = Math.max(1, width - LEFT - RIGHT)
+  const right = hideValueLabelsOnMobile && isMobile ? LEFT : RIGHT
+  const innerW = Math.max(1, width - LEFT - right)
   const innerH = height - TOP - BOTTOM
   const computed = useMemo(() => {
     const keys: ValueKey[] = [
@@ -134,7 +152,11 @@ export const PerformanceChart = ({
       </div>
     )
   }
-  const labelCount = Math.min(5, series.length)
+  const labelCount = Math.min(
+    5,
+    series.length,
+    Math.max(2, Math.floor(innerW / 100))
+  )
   return (
     <div ref={wrapRef}>
       <div
@@ -185,6 +207,9 @@ export const PerformanceChart = ({
                 opacity="0.5"
               />
               <text
+                className={
+                  hideValueLabelsOnMobile ? 'hidden sm:block' : undefined
+                }
                 x={width - 4}
                 y={computed.y(tick) + 4}
                 textAnchor="end"

@@ -61,7 +61,7 @@ export const LandingStatisticsPreview = () => (
       <CardHeader className="px-6 py-5">
         <CardTitle>Statystyki portfela</CardTitle>
       </CardHeader>
-      <div className="grid grid-cols-2 gap-x-6 gap-y-8 p-6 sm:gap-x-8 sm:gap-y-10 sm:p-8">
+      <div className="grid grid-cols-2 gap-x-3 gap-y-6 p-4 sm:gap-x-8 sm:gap-y-10 sm:p-8">
         {[
           {
             label: 'Wkład własny',
@@ -93,7 +93,7 @@ export const LandingStatisticsPreview = () => (
               {stat.label}
             </p>
             <p
-              className={`mt-3 font-mono text-lg font-medium tracking-tight sm:text-xl ${stat.tone}`}
+              className={`mt-3 font-mono text-base font-medium tracking-tight sm:text-xl ${stat.tone}`}
             >
               {stat.value}
             </p>
@@ -106,7 +106,7 @@ export const LandingStatisticsPreview = () => (
       <CardHeader className="px-6 py-5">
         <CardTitle>Struktura portfela</CardTitle>
       </CardHeader>
-      <div className="flex flex-col items-center gap-7 p-6 sm:flex-row sm:gap-8 sm:p-8">
+      <div className="flex flex-col items-center gap-7 p-4 sm:flex-row sm:gap-8 sm:p-8">
         <NestedDonut
           outer={landingDetailedAllocation.outer}
           inner={landingDetailedAllocation.inner}
@@ -143,10 +143,12 @@ export const LandingHistoryPreview = () => {
 
   return (
     <Card className="landing-card shadow-sm">
-      <CardHeader className="flex-wrap px-5 py-4">
-        <CardTitle>Wyniki historyczne</CardTitle>
-        <div className="flex items-center gap-4">
-          <label className="relative inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-sm px-2 text-xs text-ink-2 hover:text-foreground">
+      <CardHeader className="gap-2 px-3 py-2 sm:px-5 sm:py-4">
+        <CardTitle className="whitespace-nowrap text-[11px] min-[400px]:text-xs sm:text-sm">
+          Wyniki historyczne
+        </CardTitle>
+        <div className="flex shrink-0 items-center gap-1 sm:gap-4">
+          <label className="relative inline-flex h-11 cursor-pointer items-center gap-1 whitespace-nowrap rounded-sm px-1 text-[10px] text-ink-2 hover:text-foreground min-[400px]:text-[11px] sm:h-8 sm:gap-1.5 sm:px-2 sm:text-xs">
             <input
               type="checkbox"
               checked={showContribution}
@@ -163,7 +165,7 @@ export const LandingHistoryPreview = () => {
             </span>
             Wkład własny
           </label>
-          <span className="rounded-sm bg-surface-subtle px-2 py-1 text-xs font-medium">
+          <span className="rounded-sm bg-surface-subtle px-1.5 py-1 text-[10px] font-medium sm:px-2 sm:text-xs">
             1R
           </span>
         </div>
@@ -173,6 +175,7 @@ export const LandingHistoryPreview = () => {
           series={landingHistory}
           showContribution={showContribution}
           height={260}
+          hideValueLabelsOnMobile
         />
       </div>
       <div className="flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-border px-5 py-3 text-xs text-ink-3">

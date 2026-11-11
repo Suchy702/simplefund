@@ -3,7 +3,7 @@ import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { format } from 'date-fns'
-import { TrendingUp } from 'lucide-react'
+import { ChevronDown, TrendingUp } from 'lucide-react'
 import { CryptoIcon } from '@/components/CryptoIcon'
 
 import {
@@ -22,6 +22,11 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
 import type { StockInstrument } from '@/types/portfolio'
 
 const schema = z.object({
@@ -68,17 +73,14 @@ export const AddStockOperationModal = ({
 }: AddStockOperationModalProps) => {
   const isCrypto = assetType === 'crypto'
   const Icon = isCrypto ? CryptoIcon : TrendingUp
+  const [pickerOpen, setPickerOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [debouncedQuery, setDebouncedQuery] = useState('')
   const [selected, setSelected] = useState<StockInstrument | null>(null)
   const priceEditedManually = useRef(false)
   const mutation = useAddStockOperation(assetType)
   const held = useHeldStocks(open, assetType)
-  const search = useStockSearch(
-    debouncedQuery,
-    open && selected === null,
-    assetType
-  )
+  const search = useStockSearch(debouncedQuery, open && pickerOpen, assetType)
   const {
     register,
     handleSubmit,
@@ -121,6 +123,7 @@ export const AddStockOperationModal = ({
     setQuery('')
     setDebouncedQuery('')
     setSelected(null)
+    setPickerOpen(false)
     priceEditedManually.current = false
     mutation.reset()
   }
@@ -155,6 +158,9 @@ export const AddStockOperationModal = ({
               setValue('pricePerUnit', '')
               setSelected(instrument)
               setValue('ticker', instrument.ticker, { shouldValidate: true })
+              setPickerOpen(false)
+              setQuery('')
+              setDebouncedQuery('')
             }}
           >
             <span className="block text-13 font-medium">{instrument.name}</span>
@@ -195,49 +201,54 @@ export const AddStockOperationModal = ({
             <input type="hidden" {...register('ticker')} />
             <div className="flex flex-col gap-1.5">
               <label
-                htmlFor={`${assetType}-search`}
+                htmlFor={`${assetType}-instrument`}
                 className="text-13 font-medium"
               >
                 Instrument
               </label>
-              {selected ? (
-                <div className="rounded-sm border border-border p-3">
-                  <div className="text-13 font-medium">{selected.name}</div>
-                  <div className="text-12 text-ink-3">
-                    {instrumentDetails(selected)}
-                  </div>
+              <Popover modal open={pickerOpen} onOpenChange={setPickerOpen}>
+                <PopoverTrigger asChild>
                   <Button
+                    id={`${assetType}-instrument`}
                     type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="mt-1"
-                    onClick={() => {
-                      priceEditedManually.current = false
-                      setValue('pricePerUnit', '')
-                      setSelected(null)
-                      setValue('ticker', '')
-                      mutation.reset()
-                    }}
+                    variant="outline"
+                    disabled={mutation.isPending}
+                    className="h-14 w-full justify-between gap-2 text-left font-normal"
+                    aria-invalid={Boolean(errors.ticker)}
                   >
-                    Zmień instrument
+                    <span className="min-w-0">
+                      <span className="block truncate text-13 font-medium">
+                        {selected?.name ?? 'Wybierz instrument'}
+                      </span>
+                      <span className="block truncate text-12 text-ink-3">
+                        {selected
+                          ? instrumentDetails(selected)
+                          : 'Wyszukaj lub wybierz z portfela'}
+                      </span>
+                    </span>
+                    <ChevronDown size={16} className="shrink-0 text-ink-3" />
                   </Button>
-                </div>
-              ) : (
-                <>
+                </PopoverTrigger>
+                <PopoverContent
+                  align="start"
+                  className="flex max-h-[min(360px,var(--radix-popover-content-available-height))] w-[var(--radix-popover-trigger-width)] flex-col gap-2 overflow-hidden p-2"
+                >
                   <Input
                     id={`${assetType}-search`}
+                    aria-label="Wyszukaj instrument"
+                    className="shrink-0"
                     value={query}
                     maxLength={100}
                     onChange={(event) => setQuery(event.target.value)}
                     placeholder={
                       isCrypto
-                        ? 'Wpisz nazwę lub ticker, np. Bitcoin lub BTC-USD'
-                        : 'Wpisz nazwę lub ticker, np. Żabka lub ZAB.WA'
+                        ? 'Bitcoin lub BTC-USD'
+                        : 'Nazwa lub ticker, np. ZAB.WA'
                     }
                     autoComplete="off"
                   />
                   <div
-                    className={`${isCrypto ? 'h-48' : 'h-60'} shrink-0 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden`}
+                    className="min-h-0 overflow-y-auto overscroll-contain p-1"
                     aria-live="polite"
                     aria-busy={searching && waiting}
                   >
@@ -284,14 +295,25 @@ export const AddStockOperationModal = ({
                       </>
                     )}
                   </div>
-                </>
-              )}
+                </PopoverContent>
+              </Popover>
               {errors.ticker && (
                 <p className="text-12 text-destructive">
                   {errors.ticker.message}
                 </p>
               )}
             </div>
+            <Controller
+              name="operationType"
+              control={control}
+              render={({ field }) => (
+                <BuySellSelect
+                  label="Typ operacji"
+                  value={field.value}
+                  onValueChange={field.onChange}
+                />
+              )}
+            />
             <div className="flex flex-col gap-1.5">
               <label
                 htmlFor={`${assetType}-date`}
@@ -324,17 +346,6 @@ export const AddStockOperationModal = ({
                 </p>
               )}
             </div>
-            <Controller
-              name="operationType"
-              control={control}
-              render={({ field }) => (
-                <BuySellSelect
-                  label="Typ operacji"
-                  value={field.value}
-                  onValueChange={field.onChange}
-                />
-              )}
-            />
             <FloatInput
               id={`${assetType}-volume`}
               label="Liczba jednostek"

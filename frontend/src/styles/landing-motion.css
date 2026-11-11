@@ -3,6 +3,22 @@
   overflow-x: clip;
 }
 
+@media (max-width: 639.98px) {
+  html:has(.landing-page),
+  body:has(.landing-page),
+  .landing-page,
+  .landing-page * {
+    scrollbar-width: none;
+  }
+
+  html:has(.landing-page)::-webkit-scrollbar,
+  body:has(.landing-page)::-webkit-scrollbar,
+  .landing-page::-webkit-scrollbar,
+  .landing-page *::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 .landing-scroll-progress {
   position: fixed;
   inset: 0 0 auto;
@@ -163,10 +179,6 @@
     color 250ms ease;
 }
 
-.landing-page tbody tr td:first-child > div > span {
-  transition: transform 300ms var(--landing-ease);
-}
-
 .landing-page .landing-cta {
   background-image: radial-gradient(
     ellipse at 100% 0%,
@@ -255,10 +267,13 @@
   .landing-page tbody tr:hover td {
     background: var(--brand-soft);
   }
+}
 
-  .landing-page tbody tr:hover td:first-child > div > span {
-    transform: rotate(-6deg) scale(1.12);
-  }
+.landing-page footer a,
+.landing-page footer a:hover,
+.landing-page footer a:active {
+  transform: none;
+  transition: none;
 }
 
 @keyframes landing-title-shine {

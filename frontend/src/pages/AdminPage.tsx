@@ -1,3 +1,5 @@
+import { useState } from 'react'
+
 import {
   ArrowLeft,
   CircleCheck,
@@ -9,6 +11,7 @@ import {
 } from 'lucide-react'
 
 import {
+  openAdminDocs,
   useBackendConnections,
   useCryptoConnection,
   useExternalConnection,
@@ -25,6 +28,7 @@ const adminLinks = [
     href: 'https://github.com/Suchy702/simplefund/tree/master',
   },
   { name: 'SimpleFund', href: '/' },
+  { name: 'FastAPI Cloud', href: 'https://dashboard.fastapicloud.com/' },
   { name: 'BuyCoffee.to', href: 'https://buycoffee.to/simplefund' },
   { name: 'cron-job.org', href: 'https://console.cron-job.org/dashboard' },
   { name: 'Trello', href: 'https://trello.com/b/z8WWXa4t/simplefund' },
@@ -154,6 +158,8 @@ const ConnectionRow = ({
 }
 
 const AdminPage = ({ onBack }: { onBack: () => void }) => {
+  const [docsOpening, setDocsOpening] = useState(false)
+  const [docsError, setDocsError] = useState<string | null>(null)
   const database = useSupabaseConnection(true)
   const backend = useBackendConnections(true)
   const stocks = useStockConnection(true)
@@ -223,6 +229,29 @@ const AdminPage = ({ onBack }: { onBack: () => void }) => {
               Przydatne linki
             </h2>
             <div className="flex flex-wrap gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={docsOpening}
+                onClick={async () => {
+                  setDocsOpening(true)
+                  setDocsError(null)
+                  try {
+                    await openAdminDocs()
+                  } catch (error) {
+                    setDocsError(
+                      error instanceof Error
+                        ? error.message
+                        : 'Nie udało się otworzyć dokumentacji.'
+                    )
+                  } finally {
+                    setDocsOpening(false)
+                  }
+                }}
+              >
+                Dokumentacja API
+                <ExternalLink size={14} aria-hidden="true" />
+              </Button>
               {adminLinks.map(({ name, href }) => (
                 <Button key={name} variant="outline" size="sm" asChild>
                   <a href={href} target="_blank" rel="noopener noreferrer">
@@ -232,6 +261,11 @@ const AdminPage = ({ onBack }: { onBack: () => void }) => {
                 </Button>
               ))}
             </div>
+            {docsError && (
+              <p role="alert" className="mt-2 text-sm text-destructive">
+                {docsError}
+              </p>
+            )}
           </section>
 
           <section aria-labelledby="connection-heading" className="max-w-3xl">

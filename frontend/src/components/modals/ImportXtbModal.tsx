@@ -1,5 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
-import { AlertTriangle, Check, FileSpreadsheet, Upload, X } from 'lucide-react'
+import {
+  AlertTriangle,
+  Check,
+  ChevronDown,
+  FileSpreadsheet,
+  Upload,
+  X,
+} from 'lucide-react'
 
 import { useStockSearch } from '@/api/portfolio'
 import {
@@ -17,6 +24,11 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
 import {
   CURRENCIES,
   type Currency,
@@ -61,6 +73,7 @@ function InstrumentRow({
     onChange({ mode: 'yahoo', ticker: candidate.ticker })
     setEditing(false)
     setQuery('')
+    setDebounced('')
   }
   const status =
     JSON.stringify(choice) === JSON.stringify(instrument.choice)
@@ -79,27 +92,6 @@ function InstrumentRow({
           {statusLabels[status]}
         </span>
       </div>
-      {choice.mode === 'yahoo' && selected && (
-        <div className="flex items-center justify-between gap-3 rounded-md bg-surface-subtle p-3">
-          <div className="text-sm">
-            <p className="font-medium">
-              Yahoo: {selected.ticker} · {selected.name}
-            </p>
-            <p className="text-xs text-ink-3">
-              {selected.exchange ?? 'Brak giełdy'} ·{' '}
-              {selected.currency ?? 'Brak waluty'}
-            </p>
-          </div>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => setEditing(!editing)}
-          >
-            Zmień
-          </Button>
-        </div>
-      )}
       {instrument.warning && (
         <p className="text-xs text-ink-3">{instrument.warning}</p>
       )}
@@ -131,56 +123,83 @@ function InstrumentRow({
           <option value="skip">Pomiń instrument</option>
         </select>
       </label>
-      {(choice.mode === 'unresolved' ||
-        (choice.mode === 'yahoo' && (editing || !selected))) && (
-        <div className="space-y-2">
-          <Input
-            aria-label={`Wyszukaj w Yahoo: ${instrument.sourceTicker}`}
-            placeholder="Nazwa lub symbol Yahoo"
-            value={query}
-            maxLength={100}
-            onChange={(event) => setQuery(event.target.value)}
-          />
-          <div
-            className="max-h-48 space-y-1 overflow-y-auto"
-            aria-live="polite"
+      {(choice.mode === 'unresolved' || choice.mode === 'yahoo') && (
+        <Popover modal open={editing} onOpenChange={setEditing}>
+          <PopoverTrigger asChild>
+            <Button
+              type="button"
+              variant="outline"
+              className="h-14 w-full justify-between gap-2 text-left font-normal"
+              aria-label={`Wybierz instrument Yahoo: ${instrument.sourceTicker}`}
+            >
+              <span className="min-w-0">
+                <span className="block truncate text-sm font-medium">
+                  {selected
+                    ? `${selected.ticker} · ${selected.name}`
+                    : 'Wybierz instrument Yahoo'}
+                </span>
+                <span className="block truncate text-xs text-ink-3">
+                  {selected
+                    ? `${selected.exchange ?? 'Brak giełdy'} · ${selected.currency ?? 'Brak waluty'}`
+                    : 'Wyszukaj lub wybierz proponowane dopasowanie'}
+                </span>
+              </span>
+              <ChevronDown size={16} className="shrink-0 text-ink-3" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent
+            align="start"
+            className="flex max-h-[min(360px,var(--radix-popover-content-available-height))] w-[var(--radix-popover-trigger-width)] flex-col gap-2 overflow-hidden p-2"
           >
-            {search.isFetching && (
-              <p className="text-xs text-ink-3">Wyszukiwanie Yahoo…</p>
-            )}
-            {search.isError && (
-              <p role="alert" className="text-xs text-destructive">
-                {search.error.message}
-              </p>
-            )}
-            {(debounced ? (search.data ?? []) : instrument.candidates).map(
-              (candidate) => (
-                <button
-                  key={candidate.ticker}
-                  type="button"
-                  disabled={!candidate.canTransact}
-                  className="block w-full rounded-md border border-border p-2 text-left text-sm hover:bg-surface-subtle disabled:opacity-50"
-                  onClick={() => choose(candidate)}
-                >
-                  <span className="font-medium">{candidate.ticker}</span> ·{' '}
-                  {candidate.name}
-                  <span className="block text-xs text-ink-3">
-                    {candidate.exchange} · {candidate.currency}{' '}
-                    {candidate.unavailableReason}
-                  </span>
-                </button>
-              )
-            )}
-            {debounced &&
-              !search.isFetching &&
-              !search.isError &&
-              search.data?.length === 0 && (
-                <p className="text-xs text-ink-3">
-                  Brak wyników. Zmień zapytanie lub pomiń instrument.
+            <Input
+              aria-label={`Wyszukaj w Yahoo: ${instrument.sourceTicker}`}
+              className="shrink-0"
+              placeholder="Nazwa lub symbol Yahoo"
+              value={query}
+              maxLength={100}
+              onChange={(event) => setQuery(event.target.value)}
+            />
+            <div
+              className="min-h-0 space-y-1 overflow-y-auto overscroll-contain p-1"
+              aria-live="polite"
+            >
+              {search.isFetching && (
+                <p className="text-xs text-ink-3">Wyszukiwanie Yahoo…</p>
+              )}
+              {search.isError && (
+                <p role="alert" className="text-xs text-destructive">
+                  {search.error.message}
                 </p>
               )}
-          </div>
-        </div>
+              {(debounced ? (search.data ?? []) : instrument.candidates).map(
+                (candidate) => (
+                  <button
+                    key={candidate.ticker}
+                    type="button"
+                    disabled={!candidate.canTransact}
+                    className="block w-full rounded-md border border-border p-2 text-left text-sm hover:bg-surface-subtle disabled:opacity-50"
+                    onClick={() => choose(candidate)}
+                  >
+                    <span className="font-medium">{candidate.ticker}</span> ·{' '}
+                    {candidate.name}
+                    <span className="block text-xs text-ink-3">
+                      {candidate.exchange} · {candidate.currency}{' '}
+                      {candidate.unavailableReason}
+                    </span>
+                  </button>
+                )
+              )}
+              {debounced &&
+                !search.isFetching &&
+                !search.isError &&
+                search.data?.length === 0 && (
+                  <p className="text-xs text-ink-3">
+                    Brak wyników. Zmień zapytanie lub pomiń instrument.
+                  </p>
+                )}
+            </div>
+          </PopoverContent>
+        </Popover>
       )}
       {choice.mode === 'skip' && (
         <p className="text-xs text-ink-3">

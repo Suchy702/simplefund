@@ -4,6 +4,30 @@ import { useSession } from '@/api/auth'
 import { apiRequest } from '@/api/client'
 import { supabase } from '@/lib/supabase'
 
+export async function openAdminDocs() {
+  const { data, error } = await supabase.auth.getSession()
+  if (error || !data.session) {
+    throw new Error('Sesja wygasła. Zaloguj się ponownie.')
+  }
+  const apiUrl = (import.meta.env.VITE_API_URL ?? '/api/v1').replace(/\/$/, '')
+  const form = document.createElement('form')
+  form.method = 'POST'
+  form.action = `${apiUrl}/admin/docs/session`
+  form.target = '_blank'
+  form.rel = 'noopener noreferrer'
+  const token = document.createElement('input')
+  token.type = 'hidden'
+  token.name = 'access_token'
+  token.value = data.session.access_token
+  form.append(token)
+  document.body.append(form)
+  try {
+    form.submit()
+  } finally {
+    form.remove()
+  }
+}
+
 export interface ConnectionCheck {
   status: 'ok' | 'error'
   detail: string

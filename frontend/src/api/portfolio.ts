@@ -9,6 +9,7 @@ import type {
   DepositOperationInput,
   MetalInstrument,
   MetalOperationInput,
+  MetalPriceSuggestion,
   Operation,
   PortfolioHistory,
   PortfolioDashboard,
@@ -142,6 +143,32 @@ export const useMetals = (enabled: boolean) => {
       apiRequest<MetalInstrument[]>('/metals', userId!, { signal }),
     enabled: enabled && Boolean(userId),
     staleTime: Infinity,
+  })
+}
+
+export const useMetalPriceSuggestion = (
+  metal: string,
+  date: string,
+  currency: string,
+  enabled: boolean
+) => {
+  const { data: session } = useSession()
+  const userId = session?.user.id
+  return useQuery({
+    queryKey: ['metal-price', userId, metal, date, currency],
+    queryFn: ({ signal }) => {
+      const params = new URLSearchParams({ metal, date, currency })
+      return apiRequest<MetalPriceSuggestion>(
+        `/metals/price?${params}`,
+        userId!,
+        { signal }
+      )
+    },
+    enabled: enabled && Boolean(userId && metal && date && currency),
+    staleTime: 15 * 60_000,
+    retry: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   })
 }
 

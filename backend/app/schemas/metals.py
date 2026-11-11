@@ -17,6 +17,16 @@ class MetalInstrument(ApiModel):
     quantity_unit: Literal["g"] = "g"
 
 
+class MetalPriceSuggestion(ApiModel):
+    metal: Metal
+    currency: Currency
+    price_per_gram: Decimal
+    price_date: Date
+    requested_date: Date
+    usd_rate_date: Date | None = None
+    currency_rate_date: Date | None = None
+
+
 class MetalOperationCreate(BaseModel):
     model_config = ConfigDict(extra="forbid", alias_generator=to_camel)
 

@@ -5,18 +5,25 @@ import {
   Table,
   TableBody,
   TableCell,
-  TableHead,
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import {
+  ASSET_KINDS,
+  TableColumn,
+  useTableControls,
+} from '@/components/TableColumn'
 import { DeltaPill } from '@/components/DeltaPill'
 import { TickerBadge } from '@/components/TickerBadge'
 import { useHoldings } from '@/api/portfolio'
+import { filterHoldings } from '@/lib/portfolioTableRows'
 import { cn } from '@/lib/utils'
 import { fmtMoney, fmtNumber } from '@/lib/formatters'
 
 export const HoldingsTable = () => {
-  const { data: holdings, isFetching, isError, refetch } = useHoldings()
+  const controls = useTableControls()
+  const { data, isFetching, isError, refetch } = useHoldings()
+  const holdings = data && filterHoldings(data, controls.params)
   const numberOrDash = (value: number | null) =>
     value === null ? '—' : fmtNumber(value)
 
@@ -43,12 +50,35 @@ export const HoldingsTable = () => {
           <Table containerClassName="max-h-[551px]">
             <TableHeader className="sticky top-0 z-10">
               <TableRow>
-                <TableHead>Aktywo</TableHead>
-                <TableHead className="text-right">Wolumen</TableHead>
-                <TableHead className="text-right">Cena</TableHead>
-                <TableHead className="text-right">Wkład (PLN)</TableHead>
-                <TableHead className="text-right">Wartość (PLN)</TableHead>
-                <TableHead className="text-right">Bilans</TableHead>
+                <TableColumn
+                  label="Aktywo"
+                  sort="name"
+                  controls={controls}
+                  filters={[
+                    { key: 'name', label: 'Nazwa lub symbol' },
+                    { key: 'kind', label: 'Typ aktywa', options: ASSET_KINDS },
+                  ]}
+                />
+                <TableColumn label="Wolumen" right controls={controls} />
+                <TableColumn label="Cena" right controls={controls} />
+                <TableColumn
+                  label="Wkład (PLN)"
+                  sort="cost"
+                  right
+                  controls={controls}
+                />
+                <TableColumn
+                  label="Wartość (PLN)"
+                  sort="value"
+                  right
+                  controls={controls}
+                />
+                <TableColumn
+                  label="Bilans"
+                  sort="change"
+                  right
+                  controls={controls}
+                />
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -58,24 +88,23 @@ export const HoldingsTable = () => {
                     colSpan={6}
                     className="py-10 text-center text-ink-3"
                   >
-                    Brak aktywów. Dodaj pierwszą operację.
+                    {controls.query
+                      ? 'Brak aktywów spełniających filtry.'
+                      : 'Brak aktywów. Dodaj pierwszą operację.'}
                   </TableCell>
                 </TableRow>
               )}
               {holdings.map((h) => {
                 return (
                   <TableRow key={h.id} className="h-[73px]">
-                    <TableCell>
+                    <TableCell title={h.name}>
                       <div className="inline-flex items-center gap-2.5">
                         <TickerBadge ticker={h.ticker} color={h.color} />
                         <div>
                           <div className="font-medium text-foreground">
                             {h.ticker}
                           </div>
-                          <div
-                            className="max-w-[180px] truncate text-tiny text-ink-3"
-                            title={h.name}
-                          >
+                          <div className="max-w-[100px] truncate text-tiny text-ink-3">
                             {h.name}
                           </div>
                         </div>

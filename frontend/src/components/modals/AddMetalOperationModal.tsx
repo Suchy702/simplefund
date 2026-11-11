@@ -1,10 +1,15 @@
+import { useEffect, useRef } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { format } from 'date-fns'
 import { Gem } from 'lucide-react'
 
-import { useAddMetalOperation, useMetals } from '@/api/portfolio'
+import {
+  useAddMetalOperation,
+  useMetalPriceSuggestion,
+  useMetals,
+} from '@/api/portfolio'
 import { BuySellSelect, FloatInput } from '@/components/forms'
 import { Button } from '@/components/ui/button'
 import { DatePicker } from '@/components/ui/date-picker'
@@ -60,18 +65,44 @@ export const AddMetalOperationModal = ({
 }: AddMetalOperationModalProps) => {
   const metals = useMetals(open)
   const mutation = useAddMetalOperation()
+  const priceEditedManually = useRef(false)
   const {
     register,
     handleSubmit,
     control,
     reset,
+    setValue,
+    watch,
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: defaults(),
   })
+  const selectedMetal = watch('metal')
+  const transactionDate = watch('date')
+  const transactionCurrency = watch('currency')
+  const priceSuggestion = useMetalPriceSuggestion(
+    selectedMetal,
+    transactionDate,
+    transactionCurrency,
+    open
+  )
+
+  useEffect(() => {
+    if (open && priceSuggestion.data && !priceEditedManually.current) {
+      setValue('pricePerGram', priceSuggestion.data.pricePerGram, {
+        shouldValidate: true,
+      })
+    }
+  }, [open, priceSuggestion.data, setValue])
+
+  const clearPrice = () => {
+    priceEditedManually.current = false
+    setValue('pricePerGram', '')
+  }
 
   const clear = () => {
+    priceEditedManually.current = false
     reset(defaults())
     mutation.reset()
   }
@@ -116,7 +147,14 @@ export const AddMetalOperationModal = ({
                 name="metal"
                 control={control}
                 render={({ field }) => (
-                  <Select value={field.value} onValueChange={field.onChange}>
+                  <Select
+                    value={field.value}
+                    onValueChange={(value) => {
+                      if (value === field.value) return
+                      clearPrice()
+                      field.onChange(value)
+                    }}
+                  >
                     <SelectTrigger
                       id="metal-selection"
                       disabled={
@@ -173,6 +211,34 @@ export const AddMetalOperationModal = ({
                 />
               )}
             />
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="metal-date" className="text-13 font-medium">
+                Data operacji
+              </label>
+              <Controller
+                name="date"
+                control={control}
+                render={({ field }) => (
+                  <DatePicker
+                    {...field}
+                    onChange={(value) => {
+                      if (value === field.value) return
+                      clearPrice()
+                      field.onChange(value)
+                    }}
+                    id="metal-date"
+                    max={format(new Date(), 'yyyy-MM-dd')}
+                    disabled={mutation.isPending}
+                    invalid={Boolean(errors.date)}
+                  />
+                )}
+              />
+              {errors.date && (
+                <p className="text-12 text-destructive">
+                  {errors.date.message}
+                </p>
+              )}
+            </div>
             <FloatInput
               id="metal-grams"
               label="Masa czystego kruszcu (g)"
@@ -192,7 +258,11 @@ export const AddMetalOperationModal = ({
                 min="0.0001"
                 step="0.0001"
                 error={errors.pricePerGram?.message}
-                {...register('pricePerGram')}
+                {...register('pricePerGram', {
+                  onChange: () => {
+                    priceEditedManually.current = true
+                  },
+                })}
               />
               <div className="flex flex-col gap-1.5">
                 <label htmlFor="metal-currency" className="text-13 font-medium">
@@ -202,7 +272,14 @@ export const AddMetalOperationModal = ({
                   name="currency"
                   control={control}
                   render={({ field }) => (
-                    <Select value={field.value} onValueChange={field.onChange}>
+                    <Select
+                      value={field.value}
+                      onValueChange={(value) => {
+                        if (value === field.value) return
+                        clearPrice()
+                        field.onChange(value)
+                      }}
+                    >
                       <SelectTrigger
                         id="metal-currency"
                         disabled={mutation.isPending}
@@ -221,28 +298,21 @@ export const AddMetalOperationModal = ({
                 />
               </div>
             </div>
-            <div className="flex flex-col gap-1.5">
-              <label htmlFor="metal-date" className="text-13 font-medium">
-                Data operacji
-              </label>
-              <Controller
-                name="date"
-                control={control}
-                render={({ field }) => (
-                  <DatePicker
-                    {...field}
-                    id="metal-date"
-                    max={format(new Date(), 'yyyy-MM-dd')}
-                    disabled={mutation.isPending}
-                    invalid={Boolean(errors.date)}
-                  />
-                )}
-              />
-              {errors.date && (
-                <p className="text-12 text-destructive">
-                  {errors.date.message}
+            <div aria-live="polite" className="text-12 text-ink-3">
+              {selectedMetal && priceSuggestion.isFetching ? (
+                <p>Pobieranie ceny referencyjnej…</p>
+              ) : selectedMetal && priceSuggestion.isError ? (
+                <p>{priceSuggestion.error.message}</p>
+              ) : selectedMetal && priceSuggestion.data ? (
+                <p>
+                  Cena referencyjna Yahoo za gram z{' '}
+                  {priceSuggestion.data.priceDate}.
+                  {priceSuggestion.data.usdRateDate &&
+                    ` Kurs USD/PLN Frankfurter z ${priceSuggestion.data.usdRateDate}.`}
+                  {priceSuggestion.data.currencyRateDate &&
+                    ` Kurs ${transactionCurrency}/PLN z ${priceSuggestion.data.currencyRateDate}.`}
                 </p>
-              )}
+              ) : null}
             </div>
             <p className="text-12 text-ink-3">
               Wpisz faktyczną cenę transakcji, uwzględniając poniesione koszty.

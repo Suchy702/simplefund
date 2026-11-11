@@ -51,12 +51,17 @@ export const PerformanceCard = ({
     : 0
   const countdown = `${Math.floor(remaining / 60)}:${String(remaining % 60).padStart(2, '0')}`
   const incomplete = hasHistory && Boolean(data?.series.length) && !headline
+  const noDataMessage =
+    'Brak danych do obliczenia wykresu. Dodaj operację z datą do dzisiaj.'
   const refreshLabel = running
     ? 'Obliczanie historii'
-    : remaining > 0
-      ? `Kolejne przeliczenie za ${countdown}`
-      : 'Przelicz historię'
-  const refreshDisabled = running || remaining > 0 || isLoading
+    : !data?.canCalculate
+      ? noDataMessage
+      : remaining > 0
+        ? `Kolejne przeliczenie za ${countdown}`
+        : 'Przelicz historię'
+  const refreshDisabled =
+    !data?.canCalculate || running || remaining > 0 || isLoading
 
   useEffect(() => {
     setNow(Date.now())
@@ -255,26 +260,31 @@ export const PerformanceCard = ({
             height={300}
           />
         ) : (
-          <div className="flex min-h-24 items-center justify-center py-5">
-            <span title={refreshLabel}>
-              <Button
-                type="button"
-                size="sm"
-                disabled={refreshDisabled}
-                onClick={() => refresh.mutate()}
-              >
-                {running ? (
-                  <Loader2 size={14} className="animate-spin" />
-                ) : (
-                  <RefreshCw size={14} />
-                )}
-                {running
-                  ? 'Obliczanie…'
-                  : remaining > 0
-                    ? countdown
-                    : 'Oblicz wykres'}
-              </Button>
-            </span>
+          <div className="flex min-h-24 flex-col items-center justify-center gap-2 py-5">
+            {data && !data.canCalculate && !running && (
+              <p className="text-center text-xs text-ink-3">{noDataMessage}</p>
+            )}
+            {(data?.canCalculate || running) && (
+              <span title={refreshLabel}>
+                <Button
+                  type="button"
+                  size="sm"
+                  disabled={refreshDisabled}
+                  onClick={() => refresh.mutate()}
+                >
+                  {running ? (
+                    <Loader2 size={14} className="animate-spin" />
+                  ) : (
+                    <RefreshCw size={14} />
+                  )}
+                  {running
+                    ? 'Obliczanie…'
+                    : remaining > 0
+                      ? countdown
+                      : 'Oblicz wykres'}
+                </Button>
+              </span>
+            )}
           </div>
         )}
       </CardContent>

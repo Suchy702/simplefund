@@ -22,7 +22,7 @@ export const LandingPortfolioPreview = () => (
         <h2 className="text-sm font-semibold tracking-tight">Twój portfel</h2>
       </div>
 
-      <div className="p-5">
+      <div className="p-4 sm:p-5">
         <p className="text-[10px] font-semibold uppercase tracking-widest2 text-ink-3">
           Wartość portfela
         </p>
@@ -81,12 +81,13 @@ export const LandingPortfolioPreview = () => (
             series={history}
             showContribution={false}
             height={145}
+            hideValueLabelsOnMobile
           />
         </div>
 
         <div className="mt-3 border-t border-border pt-4">
           <h3 className="text-xs font-semibold">Struktura portfela</h3>
-          <div className="mt-4 flex items-center gap-4 sm:gap-6">
+          <div className="mt-4 flex flex-col items-center gap-4 min-[480px]:flex-row sm:gap-6">
             <NestedDonut
               outer={allocation.outer}
               inner={allocation.inner}
@@ -95,7 +96,7 @@ export const LandingPortfolioPreview = () => (
               innerThickness={8}
               gap={4}
             />
-            <div className="min-w-0 flex-1 space-y-2.5">
+            <div className="w-full min-w-0 flex-1 space-y-2.5">
               {allocation.outer.map((segment) => (
                 <div
                   key={segment.name}

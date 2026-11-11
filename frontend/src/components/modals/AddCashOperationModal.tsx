@@ -150,6 +150,33 @@ export const AddCashOperationModal = ({
               )}
             </div>
 
+            <div className="flex flex-col gap-1.5">
+              <label
+                htmlFor="cash-date"
+                className="text-13 font-medium text-foreground"
+              >
+                Data operacji
+              </label>
+              <Controller
+                name="date"
+                control={control}
+                render={({ field }) => (
+                  <DatePicker
+                    {...field}
+                    id="cash-date"
+                    max={format(new Date(), 'yyyy-MM-dd')}
+                    disabled={mutation.isPending}
+                    invalid={Boolean(errors.date)}
+                  />
+                )}
+              />
+              {errors.date && (
+                <p className="text-12 text-destructive">
+                  {errors.date.message}
+                </p>
+              )}
+            </div>
+
             <FloatInput
               id="cash-value"
               label="Wartość"
@@ -188,33 +215,6 @@ export const AddCashOperationModal = ({
               {errors.currency && (
                 <p className="text-12 text-destructive">
                   {errors.currency.message}
-                </p>
-              )}
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <label
-                htmlFor="cash-date"
-                className="text-13 font-medium text-foreground"
-              >
-                Data operacji
-              </label>
-              <Controller
-                name="date"
-                control={control}
-                render={({ field }) => (
-                  <DatePicker
-                    {...field}
-                    id="cash-date"
-                    max={format(new Date(), 'yyyy-MM-dd')}
-                    disabled={mutation.isPending}
-                    invalid={Boolean(errors.date)}
-                  />
-                )}
-              />
-              {errors.date && (
-                <p className="text-12 text-destructive">
-                  {errors.date.message}
                 </p>
               )}
             </div>

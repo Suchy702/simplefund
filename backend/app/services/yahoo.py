@@ -111,11 +111,16 @@ def market_snapshot(symbol: str, *, use_cache: bool = True) -> MarketSnapshot:
 
 
 def suggest_stock_price(
-    symbol: str, on: date, currency: Currency, *, crypto: bool = False
+    symbol: str,
+    on: date,
+    currency: Currency,
+    *,
+    crypto: bool = False,
+    expected_quote_type: str | None = None,
 ) -> StockPriceSuggestion:
     if on > date.today():
         raise HTTPException(422, "Data transakcji nie może być w przyszłości")
-    key = f"{symbol}:{on.isoformat()}:{currency.value}:{crypto}"
+    key = f"{symbol}:{on.isoformat()}:{currency.value}:{crypto}:{expected_quote_type}"
     cached = _get(_price_suggestions, key)
     if cached is not None:
         return cached
@@ -139,6 +144,11 @@ def suggest_stock_price(
             raise ValueError("Yahoo returned a different or missing symbol")
         if crypto and metadata.get("instrumentType") != "CRYPTOCURRENCY":
             raise HTTPException(422, "Wybierz kryptowalutę z Yahoo Finance.")
+        if (
+            expected_quote_type
+            and metadata.get("instrumentType") != expected_quote_type
+        ):
+            raise HTTPException(422, "Typ notowania Yahoo nie pasuje do instrumentu.")
         if metadata.get("currency") != currency.value:
             raise HTTPException(
                 422, "Waluta notowania Yahoo różni się od waluty wybranego instrumentu."

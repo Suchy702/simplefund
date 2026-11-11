@@ -81,16 +81,16 @@ const LandingPage = ({ onGoToLogin, onGoToRegister }: LandingPageProps) => {
       >
         Przejdź do treści
       </a>
-      <header data-reveal className="border-b border-border bg-card">
-        <div className="mx-auto flex min-h-14 max-w-[1200px] items-center justify-between gap-2 px-4 sm:px-8">
+      <header className="sticky top-0 z-40 border-b border-border bg-card shadow-sm sm:static sm:shadow-none">
+        <div className="mx-auto flex min-h-14 max-w-[1200px] items-center justify-between gap-1 px-3 sm:gap-2 sm:px-8">
           <a
             href="#"
             aria-label="SimpleFund — strona główna"
-            className="shrink-0 text-lg font-semibold tracking-tight"
+            className="shrink-0 text-base font-semibold tracking-tight sm:text-lg"
           >
             SimpleFund<span className="text-brand">.</span>
           </a>
-          <div className="flex items-center gap-1 sm:gap-5">
+          <div className="flex shrink-0 items-center gap-1 sm:gap-5">
             <nav
               aria-label="Linki projektu"
               className="flex items-center sm:gap-2"
@@ -101,7 +101,7 @@ const LandingPage = ({ onGoToLogin, onGoToRegister }: LandingPageProps) => {
                 rel="noopener noreferrer"
                 aria-label="GitHub — kod projektu (otwiera nową kartę)"
                 title="GitHub — kod projektu"
-                className="inline-flex h-8 w-8 items-center justify-center gap-2 rounded-sm text-ink-2 transition-colors hover:bg-surface-hover hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:w-auto lg:px-3"
+                className="inline-flex h-11 w-8 items-center justify-center gap-2 rounded-sm text-ink-2 transition-colors hover:bg-surface-hover hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:h-8 lg:w-auto lg:px-3"
               >
                 <Github size={16} aria-hidden="true" />
                 <span className="hidden text-xs lg:inline">GitHub</span>
@@ -112,7 +112,7 @@ const LandingPage = ({ onGoToLogin, onGoToRegister }: LandingPageProps) => {
                 rel="noopener noreferrer"
                 aria-label="Wesprzyj projekt na BuyCoffee (otwiera nową kartę)"
                 title="Wesprzyj projekt"
-                className="inline-flex h-8 w-8 items-center justify-center gap-2 rounded-sm text-brand-ink transition-colors hover:bg-brand-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:w-auto lg:px-3"
+                className="inline-flex h-11 w-8 items-center justify-center gap-2 rounded-sm text-brand-ink transition-colors hover:bg-brand-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:h-8 lg:w-auto lg:px-3"
               >
                 <span
                   aria-hidden="true"
@@ -133,7 +133,7 @@ const LandingPage = ({ onGoToLogin, onGoToRegister }: LandingPageProps) => {
                 variant="ghost"
                 size="icon"
                 onClick={toggle}
-                className="w-7 sm:w-8"
+                className="h-11 w-8 sm:h-8"
                 aria-label={
                   theme === 'dark' ? 'Włącz jasny motyw' : 'Włącz ciemny motyw'
                 }
@@ -147,7 +147,7 @@ const LandingPage = ({ onGoToLogin, onGoToRegister }: LandingPageProps) => {
               <Button
                 variant="ghost"
                 onClick={onGoToLogin}
-                className="px-1 text-xs sm:px-3 sm:text-13"
+                className="h-11 px-1.5 text-xs sm:h-8 sm:px-3 sm:text-13"
               >
                 Zaloguj się
               </Button>
@@ -171,7 +171,7 @@ const LandingPage = ({ onGoToLogin, onGoToRegister }: LandingPageProps) => {
           <div className="max-w-[480px]">
             <h1
               id="intro-title"
-              className="text-[clamp(2.6rem,4.5vw,3.75rem)] font-semibold leading-[1.08] tracking-[-0.055em]"
+              className="text-[clamp(2rem,8.5vw,2.6rem)] font-semibold leading-[1.08] tracking-[-0.055em] sm:text-[clamp(2.6rem,4.5vw,3.75rem)]"
             >
               Wiele inwestycji.
               <br />
@@ -185,16 +185,24 @@ const LandingPage = ({ onGoToLogin, onGoToRegister }: LandingPageProps) => {
               inwestycje w jednym portfelu, żeby łatwiej było zobaczyć ich
               wartość, skład i wyniki.
             </p>
-            <div data-reveal className="mt-8 flex flex-wrap gap-3">
+            <div
+              data-reveal
+              className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap"
+            >
               <Button
                 variant="brand"
                 size="lg"
-                className="landing-primary-button h-12 px-6"
+                className="landing-primary-button h-12 w-full px-6 sm:w-auto"
                 onClick={onGoToRegister}
               >
                 Stwórz swój portfel <ArrowRight size={16} aria-hidden="true" />
               </Button>
-              <Button variant="ghost" size="lg" className="h-12" asChild>
+              <Button
+                variant="ghost"
+                size="lg"
+                className="h-12 w-full sm:w-auto"
+                asChild
+              >
                 <a href="#instrumenty" onClick={scrollToFeatures}>
                   Poznaj możliwości <ArrowDown size={15} aria-hidden="true" />
                 </a>
@@ -210,9 +218,9 @@ const LandingPage = ({ onGoToLogin, onGoToRegister }: LandingPageProps) => {
           id="instrumenty"
           tabIndex={-1}
           aria-label="Obsługiwane aktywa"
-          className="border-y border-border bg-card focus:outline-none"
+          className="scroll-mt-14 border-y border-border bg-card focus:outline-none sm:scroll-mt-0"
         >
-          <div className="mx-auto grid max-w-[1200px] grid-cols-2 gap-x-5 gap-y-5 px-5 py-6 sm:grid-cols-3 sm:px-8 lg:grid-cols-6">
+          <div className="mx-auto grid max-w-[1200px] grid-cols-2 gap-x-2 gap-y-3 px-5 py-6 sm:grid-cols-3 sm:gap-5 sm:px-8 lg:grid-cols-6">
             {assetTypes.map(({ icon: Icon, name }) => (
               <div
                 key={name}
@@ -232,24 +240,32 @@ const LandingPage = ({ onGoToLogin, onGoToRegister }: LandingPageProps) => {
 
         <section
           aria-labelledby="holdings-title"
-          className="mx-auto max-w-[1200px] px-5 py-16 sm:px-8 sm:py-24"
+          className="mx-auto max-w-[1200px] px-5 py-12 sm:px-8 sm:py-24"
         >
-          <div className="mb-8 flex flex-wrap items-end justify-between gap-5">
+          <div className="mb-6 flex flex-wrap items-end justify-between gap-3 sm:mb-8 sm:gap-5">
             <div>
               <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-primary">
                 01 / Twój portfel
               </p>
               <h2
                 id="holdings-title"
-                className="mt-3 text-3xl font-semibold leading-tight tracking-tight sm:text-4xl"
+                className="mt-3 text-2xl font-semibold leading-tight tracking-tight sm:text-4xl"
               >
-                Każda inwestycja.
-                <br />W jednym zestawieniu.
+                <span className="sm:hidden">Twój portfel w jednym miejscu</span>
+                <span className="hidden sm:inline">
+                  Każda inwestycja.
+                  <br />W jednym zestawieniu.
+                </span>
               </h2>
             </div>
             <p className="max-w-[340px] text-sm leading-relaxed text-ink-2">
-              Od pojedynczych instrumentów do całego portfela. Sprawdź, co
-              posiadasz i jaki jest wynik każdej pozycji.
+              <span className="sm:hidden">
+                Sprawdź wartość i wynik swoich inwestycji.
+              </span>
+              <span className="hidden sm:inline">
+                Od pojedynczych instrumentów do całego portfela. Sprawdź, co
+                posiadasz i jaki jest wynik każdej pozycji.
+              </span>
             </p>
           </div>
           <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_260px]">
@@ -257,9 +273,42 @@ const LandingPage = ({ onGoToLogin, onGoToRegister }: LandingPageProps) => {
               <CardHeader className="px-5 py-4">
                 <CardTitle>Twoje aktywa</CardTitle>
               </CardHeader>
+              <ul
+                aria-label="Aktywa w SimpleFund"
+                className="divide-y divide-border sm:hidden"
+              >
+                {landingHoldings.slice(0, 3).map((holding) => (
+                  <li
+                    key={holding.ticker}
+                    className="flex items-center justify-between gap-3 p-4"
+                  >
+                    <div className="flex min-w-0 items-center gap-2.5">
+                      <TickerBadge
+                        ticker={holding.ticker}
+                        color={holding.color}
+                      />
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium">{holding.ticker}</p>
+                        <p className="mt-0.5 break-words text-[11px] text-ink-3">
+                          {holding.name}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex shrink-0 flex-col items-end gap-1.5">
+                      <p className="font-mono text-xs font-medium tabular">
+                        {fmtNumber(holding.value)}{' '}
+                        <span className="text-[10px] font-normal text-ink-3">
+                          PLN
+                        </span>
+                      </p>
+                      <DeltaPill value={holding.changePct} />
+                    </div>
+                  </li>
+                ))}
+              </ul>
               <Table
                 aria-label="Aktywa w SimpleFund"
-                containerClassName="overflow-y-hidden"
+                containerClassName="hidden overflow-y-hidden sm:block"
               >
                 <TableHeader>
                   <TableRow>
@@ -318,7 +367,7 @@ const LandingPage = ({ onGoToLogin, onGoToRegister }: LandingPageProps) => {
               {[
                 {
                   title: 'Wartość w PLN',
-                  text: 'Wspólna waluta ułatwia porównanie inwestycji. Kursy walut dostarcza Frankfurter.',
+                  text: 'Obsługujemy inwestycje w różnych walutach. Codziennie aktualizowane kursy pozwalają porównać ich wartość w PLN.',
                 },
                 {
                   title: 'Wkład i bilans',
@@ -328,10 +377,10 @@ const LandingPage = ({ onGoToLogin, onGoToRegister }: LandingPageProps) => {
                   title: 'Operacje pod kontrolą',
                   text: 'Dodawaj zakupy, sprzedaże, wpłaty i wypłaty. W historii operacji sprawdzisz ich daty i kwoty.',
                 },
-              ].map((item) => (
+              ].map((item, index) => (
                 <div
                   key={item.title}
-                  className="landing-step border-l-2 border-border pl-4"
+                  className={`landing-step border-l-2 border-border pl-4 ${index > 0 ? 'hidden sm:block' : ''}`}
                 >
                   <h3 className="text-sm font-semibold">{item.title}</h3>
                   <p className="mt-2 text-xs leading-relaxed text-ink-3">
@@ -455,8 +504,7 @@ const LandingPage = ({ onGoToLogin, onGoToRegister }: LandingPageProps) => {
               </p>
               <p className="mt-4 text-sm leading-relaxed text-ink-2">
                 Przeliczenie uruchamiasz w panelu. Historia uwzględnia również
-                sprzedane pozycje. Brak notowań lub zapisanych kursów może
-                powodować przerwy na wykresie.
+                sprzedane pozycje.
               </p>
             </div>
             <div className="min-w-0">
@@ -488,7 +536,7 @@ const LandingPage = ({ onGoToLogin, onGoToRegister }: LandingPageProps) => {
             <Button
               variant="brand"
               size="lg"
-              className="landing-primary-button h-12 justify-self-start px-6"
+              className="landing-primary-button h-12 w-full justify-self-start px-6 sm:w-auto"
               onClick={onGoToRegister}
             >
               Załóż darmowe konto <ArrowRight size={16} aria-hidden="true" />
@@ -497,7 +545,7 @@ const LandingPage = ({ onGoToLogin, onGoToRegister }: LandingPageProps) => {
         </section>
       </main>
 
-      <footer data-reveal className="border-t border-border bg-card">
+      <footer className="border-t border-border bg-card">
         <p className="px-5 py-3 text-center text-xs leading-6 text-ink-3 sm:px-8">
           {' '}
           <a

@@ -82,6 +82,16 @@ export interface MetalOperationInput {
   date: string
 }
 
+export interface MetalPriceSuggestion {
+  metal: MetalInstrument['metal']
+  currency: Currency
+  pricePerGram: string
+  priceDate: string
+  requestedDate: string
+  usdRateDate: string | null
+  currencyRateDate: string | null
+}
+
 export interface AllocationSegment {
   name: string
   pct: number
@@ -140,6 +150,7 @@ export interface HistoryPoint {
 
 export interface PortfolioHistory {
   status: 'idle' | 'running' | 'ready' | 'error'
+  canCalculate: boolean
   calculatedAt: string | null
   nextCalculationAt: string | null
   serverTime: string

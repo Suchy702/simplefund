@@ -18,6 +18,7 @@ class HistoryRequest(ApiModel):
 
 class HistoryResponse(ApiModel):
     status: Literal["idle", "running", "ready", "error"] = "idle"
+    can_calculate: bool = False
     calculated_at: datetime | None = None
     next_calculation_at: datetime | None = None
     server_time: datetime

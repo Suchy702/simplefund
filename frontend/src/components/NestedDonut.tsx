@@ -1,4 +1,5 @@
-import { useId, useState } from 'react'
+import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 
 import type { AllocationSegment } from '@/types/portfolio'
 
@@ -27,6 +28,37 @@ export const NestedDonut = ({
     x: size / 2,
     y: size / 2,
   })
+  const tooltipRef = useRef<HTMLDivElement>(null)
+  const [placement, setPlacement] = useState({ left: 0, top: 0 })
+
+  useLayoutEffect(() => {
+    if (!activeSegment || !tooltipRef.current) return
+    const { width, height } = tooltipRef.current.getBoundingClientRect()
+    const above = tooltipPosition.y - height - 12
+    setPlacement({
+      left: Math.max(
+        8,
+        Math.min(tooltipPosition.x - width / 2, window.innerWidth - width - 8)
+      ),
+      top: Math.max(
+        8,
+        Math.min(
+          above >= 8 ? above : tooltipPosition.y + 12,
+          window.innerHeight - height - 8
+        )
+      ),
+    })
+  }, [activeSegment, tooltipPosition])
+
+  useEffect(() => {
+    const hide = () => setActiveSegment(null)
+    window.addEventListener('scroll', hide, true)
+    window.addEventListener('resize', hide)
+    return () => {
+      window.removeEventListener('scroll', hide, true)
+      window.removeEventListener('resize', hide)
+    }
+  }, [])
   const rOuter = (size - outerThickness) / 2
   const rInner = (size - 2 * outerThickness - 2 * gap - innerThickness) / 2
 
@@ -61,18 +93,23 @@ export const NestedDonut = ({
           aria-label={`${segment.name}: ${segment.pct.toFixed(1)}%`}
           aria-describedby={activeSegment === segment ? tooltipId : undefined}
           className="cursor-default outline-none focus:opacity-75 hover:opacity-75"
-          onPointerEnter={() => setActiveSegment(segment)}
+          onPointerEnter={(event) => {
+            setTooltipPosition({ x: event.clientX, y: event.clientY })
+            setActiveSegment(segment)
+          }}
           onPointerMove={(event) => {
-            const bounds =
-              event.currentTarget.ownerSVGElement!.getBoundingClientRect()
             setTooltipPosition({
-              x: event.clientX - bounds.left,
-              y: event.clientY - bounds.top,
+              x: event.clientX,
+              y: event.clientY,
             })
           }}
           onPointerLeave={() => setActiveSegment(null)}
-          onFocus={() => {
-            setTooltipPosition({ x: size / 2, y: size / 2 })
+          onFocus={(event) => {
+            const bounds = event.currentTarget.getBoundingClientRect()
+            setTooltipPosition({
+              x: bounds.left + bounds.width / 2,
+              y: bounds.top,
+            })
             setActiveSegment(segment)
           }}
           onBlur={() => setActiveSegment(null)}
@@ -95,19 +132,22 @@ export const NestedDonut = ({
         {renderRing(outer, rOuter, outerThickness, 'outer')}
         {renderRing(inner, rInner, innerThickness, 'inner')}
       </svg>
-      {activeSegment && (
-        <div
-          id={tooltipId}
-          role="tooltip"
-          className="pointer-events-none absolute z-10 w-max max-w-full -translate-x-1/2 -translate-y-full rounded-sm bg-foreground px-2.5 py-2 text-center text-xs text-card shadow-md"
-          style={{ left: tooltipPosition.x, top: tooltipPosition.y - 12 }}
-        >
-          <div className="break-words font-medium">{activeSegment.name}</div>
-          <div className="mt-0.5 font-mono tabular">
-            {activeSegment.pct.toFixed(1)}%
-          </div>
-        </div>
-      )}
+      {activeSegment &&
+        createPortal(
+          <div
+            ref={tooltipRef}
+            id={tooltipId}
+            role="tooltip"
+            className="pointer-events-none fixed z-[100] w-max max-w-[min(320px,calc(100vw-16px))] rounded-sm bg-foreground px-2.5 py-2 text-center text-xs text-card shadow-md"
+            style={placement}
+          >
+            <div className="break-words font-medium">{activeSegment.name}</div>
+            <div className="mt-0.5 font-mono tabular">
+              {activeSegment.pct.toFixed(1)}%
+            </div>
+          </div>,
+          document.body
+        )}
     </div>
   )
 }

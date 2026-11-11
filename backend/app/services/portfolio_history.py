@@ -11,7 +11,7 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
 from app.database import SessionLocal
-from app.models import ManualPrice, PortfolioHistory, Profile
+from app.models import ManualPrice, PortfolioHistory, Profile, Transaction
 from app.models.metals import GRAMS_PER_TROY_OUNCE, METALS_BY_TICKER
 from app.repositories.portfolio import transaction_rows
 from app.schemas.portfolio import PortfolioPoint, PortfolioRange
@@ -71,14 +71,29 @@ def ledger_fingerprint(db: Session, user_id: UUID) -> str:
     return hashlib.sha256(json.dumps(records, sort_keys=True).encode()).hexdigest()
 
 
+def _has_history_data(db: Session, user_id: UUID) -> bool:
+    return bool(
+        db.scalar(
+            select(
+                select(Transaction.id)
+                .where(Transaction.user_id == user_id, Transaction.date <= date.today())
+                .exists()
+            )
+        )
+    )
+
+
 def get_history(
     db: Session, user_id: UUID, selected_range: PortfolioRange = "1R"
 ) -> HistoryResponse:
     now = datetime.now(timezone.utc)
     entry = db.get(PortfolioHistory, user_id)
     profile = db.get(Profile, user_id)
+    can_calculate = _has_history_data(db, user_id)
     if entry is None:
-        return HistoryResponse(server_time=now, range=selected_range)
+        return HistoryResponse(
+            server_time=now, range=selected_range, can_calculate=can_calculate
+        )
     if entry.status == "running" and (
         entry.heartbeat_at is None or entry.heartbeat_at < now - LEASE
     ):
@@ -119,6 +134,7 @@ def get_history(
     )
     return HistoryResponse(
         status=entry.status,
+        can_calculate=can_calculate,
         server_time=now,
         calculated_at=entry.calculated_at,
         next_calculation_at=(
@@ -155,6 +171,12 @@ def request_history(db: Session, user: dict) -> UUID:
         profile = db.scalars(
             select(Profile).where(Profile.id == user_id).with_for_update()
         ).one()
+        if not _has_history_data(db, user_id):
+            raise HTTPException(
+                400,
+                "Brak operacji do obliczenia wykresu. "
+                "Dodaj operację z datą do dzisiaj.",
+            )
         entry = db.get(PortfolioHistory, user_id)
         if entry is not None:
             if (

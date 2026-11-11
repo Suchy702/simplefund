@@ -1,7 +1,12 @@
-import { OPERATION_LABELS } from '@/types/portfolio'
-import { ChevronLeft, ChevronRight, Download, Trash2 } from 'lucide-react'
+import { CURRENCIES, OPERATION_LABELS } from '@/types/portfolio'
+import { ChevronLeft, ChevronRight, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 
+import {
+  ASSET_KINDS,
+  TableColumn,
+  useTableControls,
+} from '@/components/TableColumn'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -21,13 +26,16 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { useDeleteOperation, useOperations } from '@/api/portfolio'
+import { filterOperations } from '@/lib/portfolioTableRows'
 import { fmtNumber } from '@/lib/formatters'
 import { format, parseISO } from 'date-fns'
 
 export const OperationsTable = () => {
-  const { data: ops, isError, refetch } = useOperations()
   const deleteOperation = useDeleteOperation()
   const [page, setPage] = useState(1)
+  const controls = useTableControls(() => setPage(1))
+  const { data, isError, refetch } = useOperations()
+  const ops = data && filterOperations(data, controls.params)
   const pageSize = 10
   const pageCount = Math.max(1, Math.ceil((ops?.length ?? 0) / pageSize))
   const currentPage = Math.min(page, pageCount)
@@ -44,15 +52,6 @@ export const OperationsTable = () => {
           <CardDescription>
             {ops ? `Liczba wpisów: ${ops.length}` : ' '}
           </CardDescription>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm">
-            Filtruj
-          </Button>
-          <Button variant="outline" size="sm">
-            <Download size={13} />
-            Eksport
-          </Button>
         </div>
       </CardHeader>
       <CardContent className="p-0">
@@ -83,15 +82,74 @@ export const OperationsTable = () => {
           <Table className="[&_td]:py-2">
             <TableHeader>
               <TableRow>
-                <TableHead>Operacja</TableHead>
-                <TableHead>Typ aktywa</TableHead>
-                <TableHead>Nazwa</TableHead>
+                <TableColumn
+                  label="Operacja"
+                  sort="type"
+                  controls={controls}
+                  filters={[
+                    {
+                      key: 'operation_type',
+                      label: 'Operacja',
+                      options: Object.entries(OPERATION_LABELS).map(
+                        ([value, label]) => ({ value, label })
+                      ),
+                    },
+                  ]}
+                />
+                <TableColumn
+                  label="Typ aktywa"
+                  sort="kind"
+                  controls={controls}
+                  filters={[
+                    {
+                      key: 'kind',
+                      label: 'Typ aktywa',
+                      options: [
+                        ...ASSET_KINDS,
+                        { value: 'ETF', label: 'ETF' },
+                        { value: 'XTB', label: 'XTB' },
+                      ],
+                    },
+                  ]}
+                />
+                <TableColumn
+                  label="Nazwa"
+                  sort="name"
+                  controls={controls}
+                  filters={[{ key: 'name', label: 'Nazwa zawiera' }]}
+                />
                 <TableHead className="text-right">Wolumen</TableHead>
                 <TableHead className="text-right">Cena</TableHead>
-                <TableHead className="text-right">Wartość</TableHead>
-                <TableHead>Waluta</TableHead>
-                <TableHead className="text-right">Wartość (PLN)</TableHead>
-                <TableHead>Data</TableHead>
+                <TableColumn
+                  label="Waluta"
+                  sort="currency"
+                  controls={controls}
+                  filters={[
+                    {
+                      key: 'currency',
+                      label: 'Waluta',
+                      options: CURRENCIES.map((value) => ({
+                        value,
+                        label: value,
+                      })),
+                    },
+                  ]}
+                />
+                <TableColumn
+                  label="Wartość (PLN)"
+                  sort="value_pln"
+                  right
+                  controls={controls}
+                />
+                <TableColumn
+                  label="Data"
+                  sort="date"
+                  controls={controls}
+                  filters={[
+                    { key: 'date_from', label: 'Od', type: 'date' },
+                    { key: 'date_to', label: 'Do', type: 'date' },
+                  ]}
+                />
                 <TableHead />
               </TableRow>
             </TableHeader>
@@ -99,10 +157,12 @@ export const OperationsTable = () => {
               {ops.length === 0 && (
                 <TableRow>
                   <TableCell
-                    colSpan={10}
+                    colSpan={9}
                     className="py-10 text-center text-ink-3"
                   >
-                    Brak operacji. Dodaj pierwszą operację.
+                    {controls.query
+                      ? 'Brak operacji spełniających filtry.'
+                      : 'Brak operacji. Dodaj pierwszą operację.'}
                   </TableCell>
                 </TableRow>
               )}
@@ -133,22 +193,12 @@ export const OperationsTable = () => {
                   <TableCell className="text-right font-mono tabular">
                     {o.qty !== null && o.quantityUnit
                       ? `${fmtNumber(o.qty)} ${o.quantityUnit}`
-                      : o.kind === 'Kryptowaluty' && o.qty !== null
-                        ? fmtNumber(o.qty, 8)
-                        : numberOrDash(o.qty)}
+                      : numberOrDash(o.qty)}
                   </TableCell>
                   <TableCell className="text-right font-mono tabular">
                     {o.price !== null && o.quantityUnit
                       ? `${fmtNumber(o.price)}/${o.quantityUnit}`
-                      : o.kind === 'Kryptowaluty' && o.price !== null
-                        ? fmtNumber(o.price, 12)
-                        : numberOrDash(o.price)}
-                  </TableCell>
-                  <TableCell
-                    className="text-right font-mono tabular font-medium"
-                    title={o.valueDescription ?? undefined}
-                  >
-                    {numberOrDash(o.value)}
+                      : numberOrDash(o.price)}
                   </TableCell>
                   <TableCell>{o.currency}</TableCell>
                   <TableCell className="text-right font-mono tabular font-medium">
@@ -184,7 +234,7 @@ export const OperationsTable = () => {
                       aria-hidden="true"
                       className="h-[48px] hover:bg-transparent"
                     >
-                      <TableCell colSpan={10} className="p-0" />
+                      <TableCell colSpan={9} className="p-0" />
                     </TableRow>
                   )
                 )}
