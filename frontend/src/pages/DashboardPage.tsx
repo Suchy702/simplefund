@@ -47,20 +47,24 @@ const DashboardPage = ({
         ref={scrollRef}
         className="mobile-scrollbar-hidden min-h-0 flex-1 overflow-y-auto px-4 pb-12 pt-5 sm:px-6 sm:pt-6 lg:px-8 lg:pt-8"
       >
-        <div className="mx-auto w-full max-w-[1280px]">
-          <PageHead
-            asOfDate={kpi?.asOfDate ? formatSeriesDate(kpi.asOfDate) : ''}
-            syncedMinutesAgo={kpi?.syncedMinutesAgo ?? null}
-            mobileActionsVisible={activeSection === 'portfolio-holdings'}
-          />
+        <div className="mx-auto w-full max-w-[1280px] md:grid md:grid-cols-[minmax(0,1fr)_320px] md:gap-x-4">
+          <div className="md:col-span-2">
+            <PageHead
+              asOfDate={kpi?.asOfDate ? formatSeriesDate(kpi.asOfDate) : ''}
+              syncedMinutesAgo={kpi?.syncedMinutesAgo ?? null}
+              mobileActionsVisible={activeSection === 'portfolio-holdings'}
+            />
+          </div>
 
           <section
             id="portfolio-stats"
             aria-label="Statystyki portfela"
-            className={sectionClass('portfolio-stats')}
+            className={cn(sectionClass('portfolio-stats'), 'md:contents')}
           >
-            <Hero />
-            <div className="mb-4">
+            <div className="md:col-span-2">
+              <Hero />
+            </div>
+            <div className="mb-4 md:col-start-2 md:row-start-3">
               <AllocationCard />
             </div>
           </section>
@@ -68,7 +72,10 @@ const DashboardPage = ({
           <section
             id="portfolio-holdings"
             aria-label="Aktywa portfela"
-            className={cn(sectionClass('portfolio-holdings'), 'mb-4')}
+            className={cn(
+              sectionClass('portfolio-holdings'),
+              'mb-4 md:col-start-1 md:row-start-3'
+            )}
           >
             <HoldingsTable />
           </section>
@@ -76,7 +83,10 @@ const DashboardPage = ({
           <section
             id="portfolio-performance"
             aria-label="Wyniki historyczne"
-            className={sectionClass('portfolio-performance')}
+            className={cn(
+              sectionClass('portfolio-performance'),
+              'md:col-span-2'
+            )}
           >
             <PerformanceCard range={range} onRangeChange={setRange} />
             <PerformanceStats range={range} />
@@ -85,7 +95,10 @@ const DashboardPage = ({
           <section
             id="portfolio-operations"
             aria-label="Historia operacji"
-            className={sectionClass('portfolio-operations')}
+            className={cn(
+              sectionClass('portfolio-operations'),
+              'md:col-span-2'
+            )}
           >
             <OperationsTable />
           </section>

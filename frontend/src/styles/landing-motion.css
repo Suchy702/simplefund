@@ -206,7 +206,6 @@
     box-shadow: 0 12px 30px color-mix(in oklch, var(--ink) 8%, transparent);
   }
 
-  .landing-page .landing-stat:hover,
   .landing-page .landing-legend:hover,
   .landing-page .landing-step:hover {
     background-color: var(--brand-soft);
