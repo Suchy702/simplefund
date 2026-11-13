@@ -27,12 +27,14 @@ import {
 } from '@/components/ui/dropdown-menu'
 
 interface PageHeadProps {
+  mobileTitle?: string
   asOfDate: string
   syncedMinutesAgo: number | null
   mobileActionsVisible?: boolean
 }
 
 export const PageHead = ({
+  mobileTitle = 'Twój portfel',
   asOfDate,
   syncedMinutesAgo,
   mobileActionsVisible = true,
@@ -50,7 +52,8 @@ export const PageHead = ({
       <div className="mb-6 flex flex-col items-stretch justify-between gap-4 md:flex-row md:items-end">
         <div>
           <h1 className="m-0 mb-1 text-2xl font-semibold tracking-tighter2 text-foreground">
-            Twój portfel
+            <span className="md:hidden">{mobileTitle}</span>
+            <span className="hidden md:inline">Twój portfel</span>
           </h1>
           <div className="text-13 text-ink-3">
             {asOfDate ? `Stan na ${asOfDate}` : 'Stan portfela'}

@@ -57,11 +57,13 @@ export const LandingXtbPreview = () => (
 
 export const LandingStatisticsPreview = () => (
   <div className="grid gap-5 lg:grid-cols-[0.85fr_1.15fr]">
-    <Card className="landing-card shadow-sm">
-      <CardHeader className="px-6 py-5">
-        <CardTitle>Statystyki portfela</CardTitle>
+    <Card className="landing-card grid grid-cols-[1fr_max-content_1fr_max-content_1fr] shadow-sm sm:block">
+      <CardHeader className="col-span-full grid grid-cols-subgrid gap-0 px-0 py-5 sm:flex sm:px-8">
+        <CardTitle className="col-start-2 col-end-5">
+          Statystyki portfela
+        </CardTitle>
       </CardHeader>
-      <div className="grid grid-cols-2 gap-x-3 gap-y-6 p-4 sm:gap-x-8 sm:gap-y-10 sm:p-8">
+      <div className="col-span-full grid grid-cols-subgrid gap-y-6 py-4 sm:grid-cols-2 sm:gap-x-8 sm:gap-y-10 sm:p-8">
         {[
           {
             label: 'Wkład własny',
@@ -88,7 +90,10 @@ export const LandingStatisticsPreview = () => (
             tone: 'text-pos',
           },
         ].map((stat) => (
-          <div key={stat.label} className="landing-stat">
+          <div
+            key={stat.label}
+            className="landing-stat odd:col-start-2 even:col-start-4 sm:odd:col-start-auto sm:even:col-start-auto"
+          >
             <p className="text-[10px] font-medium uppercase tracking-wider text-ink-3">
               {stat.label}
             </p>
@@ -156,12 +161,12 @@ export const LandingHistoryPreview = () => {
               className="peer sr-only"
             />
             <span
-              className="flex h-3.5 w-3.5 items-center justify-center rounded-full border border-ink-3 peer-checked:border-blue-500 peer-focus-visible:ring-2 peer-focus-visible:ring-blue-500 peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-card"
+              className="relative h-[18px] w-[34px] shrink-0 rounded-full border border-ink-3 bg-surface-subtle transition-colors peer-checked:border-blue-500 peer-checked:bg-blue-500 peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-card"
               aria-hidden="true"
             >
-              {showContribution && (
-                <span className="h-2 w-2 rounded-full bg-blue-500" />
-              )}
+              <span
+                className={`absolute left-[3px] top-[3px] h-2.5 w-2.5 rounded-full bg-ink-3 transition-transform ${showContribution ? 'translate-x-4 bg-white' : ''}`}
+              />
             </span>
             Wkład własny
           </label>

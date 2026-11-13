@@ -10,13 +10,7 @@ import {
 } from '@/components/TableColumn'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
   Table,
@@ -46,16 +40,8 @@ export const OperationsTable = () => {
     value === null ? '—' : fmtNumber(value)
 
   return (
-    <Card>
-      <CardHeader>
-        <div>
-          <CardTitle>Historia operacji</CardTitle>
-          <CardDescription>
-            {ops ? `Liczba wpisów: ${ops.length}` : ' '}
-          </CardDescription>
-        </div>
-      </CardHeader>
-      <CardContent className="p-0">
+    <Card className="-mx-4 h-full rounded-none border-x-0 border-b-0 sm:-mx-6 md:mx-0 md:h-auto md:rounded-lg md:border-x md:border-b">
+      <CardContent className="flex h-full min-h-0 flex-col p-0 md:block md:h-auto">
         {deleteOperation.isError && (
           <div role="alert" className="p-6 text-sm text-negative">
             {deleteOperation.error.message}
@@ -83,7 +69,7 @@ export const OperationsTable = () => {
           <>
             <MobileOperationCards
               controls={controls}
-              operations={visibleOperations ?? []}
+              operations={ops}
               filtered={Boolean(controls.query)}
               deleting={deleteOperation.isPending}
               onDelete={(id) => deleteOperation.mutate(id)}
@@ -254,7 +240,7 @@ export const OperationsTable = () => {
         {!isError && ops && ops.length > pageSize && (
           <nav
             aria-label="Paginacja historii operacji"
-            className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-6 py-3"
+            className="hidden shrink-0 flex-wrap items-center justify-between gap-3 border-t border-border px-6 py-3 md:flex"
           >
             <span className="text-xs text-ink-3" aria-live="polite">
               <span className="font-medium tabular-nums text-ink-2">

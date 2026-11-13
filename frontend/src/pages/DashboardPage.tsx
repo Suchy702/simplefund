@@ -5,6 +5,7 @@ import { Hero } from '@/components/Hero'
 import { HoldingsTable } from '@/components/HoldingsTable'
 import {
   MobileDashboardNav,
+  sections,
   type SectionId,
 } from '@/components/MobileDashboardNav'
 import { OperationsTable } from '@/components/OperationsTable'
@@ -29,6 +30,9 @@ const DashboardPage = ({
     useState<SectionId>('portfolio-stats')
   const [range, setRange] = useState<RangeKey>('1R')
   const { data: kpi } = usePortfolioKpi()
+  const isTableSection =
+    activeSection === 'portfolio-holdings' ||
+    activeSection === 'portfolio-operations'
 
   useLayoutEffect(() => {
     if (window.matchMedia('(max-width: 767.98px)').matches) {
@@ -45,14 +49,27 @@ const DashboardPage = ({
 
       <main
         ref={scrollRef}
-        className="mobile-scrollbar-hidden min-h-0 flex-1 overflow-y-auto px-4 pb-12 pt-5 sm:px-6 sm:pt-6 lg:px-8 lg:pt-8"
+        className={cn(
+          'mobile-scrollbar-hidden min-h-0 flex-1 overscroll-y-none px-4 pt-5 sm:px-6 sm:pt-6 md:overscroll-y-auto lg:px-8 lg:pt-8',
+          isTableSection
+            ? 'overflow-hidden pb-0 md:overflow-y-auto md:pb-12'
+            : 'overflow-y-auto pb-0 md:pb-12'
+        )}
       >
-        <div className="mx-auto w-full max-w-[1280px] md:grid md:grid-cols-[minmax(0,1fr)_320px] md:gap-x-4">
-          <div className="md:col-span-2">
+        <div
+          className={cn(
+            'mx-auto w-full max-w-[1280px] md:grid md:grid-cols-[minmax(0,1fr)_320px] md:gap-x-4',
+            isTableSection && 'flex h-full min-h-0 flex-col md:h-auto'
+          )}
+        >
+          <div className="shrink-0 md:col-span-2">
             <PageHead
+              mobileTitle={
+                sections.find(({ id }) => id === activeSection)?.label
+              }
               asOfDate={kpi?.asOfDate ? formatSeriesDate(kpi.asOfDate) : ''}
               syncedMinutesAgo={kpi?.syncedMinutesAgo ?? null}
-              mobileActionsVisible={activeSection === 'portfolio-holdings'}
+              mobileActionsVisible={activeSection === 'portfolio-operations'}
             />
           </div>
 
@@ -74,7 +91,7 @@ const DashboardPage = ({
             aria-label="Aktywa portfela"
             className={cn(
               sectionClass('portfolio-holdings'),
-              'mb-4 md:col-start-1 md:row-start-3'
+              'min-h-0 flex-1 md:mb-4 md:col-start-1 md:row-start-3'
             )}
           >
             <HoldingsTable />
@@ -97,7 +114,7 @@ const DashboardPage = ({
             aria-label="Historia operacji"
             className={cn(
               sectionClass('portfolio-operations'),
-              'md:col-span-2'
+              'min-h-0 flex-1 md:col-span-2'
             )}
           >
             <OperationsTable />

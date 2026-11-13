@@ -1,4 +1,3 @@
-import { HoldingsViewport } from '@/components/HoldingsViewport'
 import {
   ASSET_KINDS,
   TableColumn,
@@ -29,7 +28,7 @@ export const MobileHoldingCards = ({
   filtered: boolean
   controls: ReturnType<typeof useTableControls>
 }) => (
-  <HoldingsViewport className="md:hidden">
+  <div className="mobile-scrollbar-hidden h-full w-full min-w-0 overflow-y-auto overscroll-contain md:hidden">
     <table className="w-full table-fixed text-left">
       <caption className="sr-only">Aktywa portfela</caption>
       <colgroup>
@@ -85,7 +84,7 @@ export const MobileHoldingCards = ({
         <tbody
           key={holding.id}
           data-holding-row
-          className="border-b border-border last:border-0"
+          className="mobile-table-record"
         >
           <tr>
             <td rowSpan={2} className="pl-3 pr-1 pt-3 align-top">
@@ -122,7 +121,7 @@ export const MobileHoldingCards = ({
         </tbody>
       ))}
     </table>
-  </HoldingsViewport>
+  </div>
 )
 
 export const MobileOperationCards = ({
@@ -138,7 +137,7 @@ export const MobileOperationCards = ({
   deleting: boolean
   onDelete: (id: string) => void
 }) => (
-  <div className="md:hidden">
+  <div className="mobile-scrollbar-hidden min-h-0 w-full min-w-0 flex-1 overflow-y-auto overscroll-contain md:hidden">
     <table className="w-full table-fixed text-left">
       <caption className="sr-only">Historia operacji</caption>
       <colgroup>
@@ -146,7 +145,7 @@ export const MobileOperationCards = ({
         <col />
         <col className="w-12" />
       </colgroup>
-      <thead className="border-b border-border bg-surface-subtle">
+      <thead className="sticky top-0 z-10 border-b border-border bg-surface-subtle">
         <tr>
           <TableColumn
             compact
@@ -193,7 +192,7 @@ export const MobileOperationCards = ({
           </th>
         </tr>
       </thead>
-      <tbody className="divide-y divide-border">
+      <tbody>
         {!operations.length && (
           <tr>
             <td colSpan={3} className="p-4 text-sm text-ink-3">
@@ -204,7 +203,7 @@ export const MobileOperationCards = ({
           </tr>
         )}
         {operations.map((operation) => (
-          <tr key={operation.id}>
+          <tr key={operation.id} className="mobile-table-record">
             <td className="py-2 pl-3 pr-2 align-middle">
               <Badge
                 className="max-w-full whitespace-normal px-2 py-1 text-[10px] leading-tight [overflow-wrap:anywhere]"

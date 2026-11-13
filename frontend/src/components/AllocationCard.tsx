@@ -8,7 +8,7 @@ export const AllocationCard = () => {
   const { data: allocation, isFetching, isError, refetch } = useAllocation()
 
   return (
-    <Card>
+    <Card className="md:h-full">
       <CardContent>
         {isError ? (
           <div role="alert" className="text-sm">

@@ -30,8 +30,8 @@ export const HoldingsTable = () => {
     value === null ? '—' : fmtNumber(value)
 
   return (
-    <Card>
-      <CardContent className="p-0">
+    <Card className="relative -mx-4 h-full rounded-none border-x-0 border-b-0 sm:-mx-6 md:mx-0 md:rounded-lg md:border-x md:border-b">
+      <CardContent className="h-full p-0 md:absolute md:inset-0">
         {isError ? (
           <div role="alert" className="p-6 text-sm">
             Nie udało się pobrać aktywów.
@@ -55,7 +55,7 @@ export const HoldingsTable = () => {
               holdings={holdings}
               filtered={Boolean(controls.query)}
             />
-            <HoldingsViewport className="hidden md:block">
+            <HoldingsViewport className="hidden h-full md:block">
               <Table containerClassName="overflow-visible">
                 <TableHeader className="sticky top-0 z-10">
                   <TableRow>

@@ -112,6 +112,23 @@
 }
 
 @layer components {
+  .mobile-table-record {
+    background-image: linear-gradient(
+      to right,
+      transparent,
+      var(--border) 15%,
+      var(--border) 85%,
+      transparent
+    );
+    background-position: bottom;
+    background-size: 100% 1px;
+    background-repeat: no-repeat;
+  }
+
+  .mobile-table-record:last-child {
+    background-image: none;
+  }
+
   .mobile-list-input {
     @apply block w-full min-w-0 rounded-sm border border-border bg-card px-3 py-2 text-base text-foreground;
   }

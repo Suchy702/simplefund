@@ -6,6 +6,9 @@ import { fmtMoney, fmtPct } from '@/lib/formatters'
 import { formatSeriesDate } from '@/lib/performance'
 import type { RangeKey } from '@/types/portfolio'
 
+const statsLayout =
+  'grid grid-cols-[minmax(0,max-content)_minmax(0,max-content)] justify-between gap-x-4 gap-y-6 md:grid-cols-2 md:justify-evenly md:gap-6 xl:grid-cols-4 xl:gap-8 [&>div]:min-w-0 [&>div]:[overflow-wrap:anywhere]'
+
 interface PerformanceStatsProps {
   range: RangeKey
 }
@@ -40,8 +43,8 @@ export const PerformanceStats = ({ range }: PerformanceStatsProps) => {
 
   if (isLoading) {
     return (
-      <Card className="mb-4 px-4 py-5 sm:px-6 lg:px-8 lg:py-6">
-        <div className="grid grid-cols-2 gap-6 xl:grid-cols-4 xl:gap-8 [&>div]:min-w-0 [&>div]:[overflow-wrap:anywhere]">
+      <Card className="mb-4 px-4 py-6 md:px-6 md:py-5 lg:px-8 lg:py-6">
+        <div className={statsLayout}>
           {[0, 1, 2, 3].map((i) => (
             <div key={i}>
               <Skeleton className="mb-1 h-3 w-24 max-w-full" />
@@ -56,7 +59,7 @@ export const PerformanceStats = ({ range }: PerformanceStatsProps) => {
 
   if (!stats) {
     return (
-      <Card className="mb-4 px-4 py-5 sm:px-6 lg:px-8 lg:py-6 text-ink-3">
+      <Card className="mb-4 p-6 md:py-5 lg:px-8 lg:py-6 text-ink-3">
         Brak danych do obliczenia statystyk.
       </Card>
     )
@@ -65,8 +68,8 @@ export const PerformanceStats = ({ range }: PerformanceStatsProps) => {
   const { peak, trough, peakDate, troughDate, stdPct, maxDd, maxDdPln } = stats
 
   return (
-    <Card className="mb-4 px-4 py-5 sm:px-6 lg:px-8 lg:py-6">
-      <div className="grid grid-cols-2 gap-6 xl:grid-cols-4 xl:gap-8 [&>div]:min-w-0 [&>div]:[overflow-wrap:anywhere]">
+    <Card className="mb-4 px-4 py-6 md:px-6 md:py-5 lg:px-8 lg:py-6">
+      <div className={statsLayout}>
         <StatCell
           label="Szczyt (ATH)"
           value={Math.round(peak).toLocaleString('pl-PL')}

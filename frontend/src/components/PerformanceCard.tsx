@@ -118,11 +118,11 @@ export const PerformanceCard = ({
       <Button
         type="button"
         variant="ghost"
-        size={mobile || remaining > 0 ? 'sm' : 'icon'}
+        size={!mobile && remaining > 0 ? 'sm' : 'icon'}
         className={cn(
           'gap-1.5',
           mobile
-            ? 'min-h-11 px-1 text-xs text-inherit hover:bg-transparent hover:text-inherit'
+            ? 'h-11 w-11 shrink-0 text-inherit hover:bg-transparent hover:text-inherit'
             : 'h-8',
           data?.stale && !mobile && 'text-amber-600'
         )}
@@ -135,8 +135,7 @@ export const PerformanceCard = ({
         ) : (
           <RefreshCw size={15} />
         )}
-        {mobile && (running ? 'Obliczanie…' : 'Odśwież dane')}
-        {!running && remaining > 0 && (
+        {!mobile && !running && remaining > 0 && (
           <span className="font-mono text-xs tabular">{countdown}</span>
         )}
       </Button>
@@ -353,27 +352,21 @@ export const PerformanceCard = ({
           </div>
         )}
         {hasHistory && (
-          <div className="mt-1 md:hidden">
+          <div className="mt-1 flex items-center justify-between gap-2 md:hidden">
             {contributionToggle(true)}
             <div
               className={cn(
-                'mt-1 flex flex-wrap items-center justify-between gap-x-2 rounded-lg px-3 text-xs',
+                'flex shrink-0 items-center gap-1 rounded-lg px-1 text-xs',
                 error
                   ? 'bg-[var(--neg-soft)] text-neg'
                   : data?.stale
-                    ? 'bg-brand-soft text-brand-ink'
-                    : 'bg-surface-subtle text-ink-2'
+                    ? 'text-brand-ink'
+                    : 'text-ink-2'
               )}
             >
-              <span role="status">
-                {running
-                  ? 'Trwa przeliczanie'
-                  : error
-                    ? 'Błąd aktualizacji danych'
-                    : data?.stale
-                      ? 'Dane mogą być nieaktualne'
-                      : 'Dane aktualne'}
-              </span>
+              {(error || data?.stale) && (
+                <span role="status">{error ? 'Błąd' : 'Nieaktualne'}</span>
+              )}
               {refreshButton(true)}
             </div>
           </div>

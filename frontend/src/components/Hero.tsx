@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils'
 import { fmtMoney, fmtNumber, fmtPct } from '@/lib/formatters'
 
 const heroLayout =
-  'grid grid-cols-[minmax(0,max-content)_minmax(0,max-content)] items-start justify-evenly gap-x-4 gap-y-6 sm:gap-x-6 xl:grid-cols-[1.6fr_1fr_1fr_0.9fr_0.9fr] xl:gap-10 [&>div]:min-w-0'
+  'grid grid-cols-[minmax(0,max-content)_minmax(0,max-content)] items-start justify-between gap-x-4 gap-y-6 md:justify-evenly md:gap-x-6 xl:grid-cols-[1.6fr_1fr_1fr_0.9fr_0.9fr] xl:gap-10 [&>div]:min-w-0'
 const statRowLayout = 'contents [&>div]:min-w-0'
 
 const HeroLabel = ({ children }: { children: React.ReactNode }) => (
@@ -46,7 +46,7 @@ export const Hero = () => {
 
   if (isFetching) {
     return (
-      <Card className="mb-4 px-4 py-5 sm:px-6 xl:px-9 xl:py-7">
+      <Card className="mb-4 px-4 py-6 md:px-6 md:py-5 xl:px-9 xl:py-7">
         <div className={heroLayout}>
           <div className="col-span-2 [container-type:inline-size] xl:col-span-1">
             <Skeleton className="mb-3 h-3 w-24 max-w-full" />
@@ -80,7 +80,7 @@ export const Hero = () => {
 
   if (!data) {
     return (
-      <Card className="mb-4 px-4 py-5 sm:px-6 xl:px-9 xl:py-7 text-ink-3">
+      <Card className="mb-4 p-6 md:py-5 xl:px-9 xl:py-7 text-ink-3">
         Nie udało się pobrać statystyk portfela.
       </Card>
     )
@@ -90,7 +90,7 @@ export const Hero = () => {
   const positive = balance !== null && balance >= 0
 
   return (
-    <Card className="mb-4 px-4 py-5 sm:px-6 xl:px-9 xl:py-7">
+    <Card className="mb-4 px-4 py-6 md:px-6 md:py-5 xl:px-9 xl:py-7">
       <div className={heroLayout}>
         <div className="col-span-2 [container-type:inline-size] xl:col-span-1">
           <HeroLabel>Wartość portfela</HeroLabel>

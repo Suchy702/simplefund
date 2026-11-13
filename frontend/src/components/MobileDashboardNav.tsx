@@ -2,11 +2,11 @@ import { Fragment } from 'react'
 import { BarChart3, History, TrendingUp, Wallet } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-const sections = [
+export const sections = [
   { id: 'portfolio-stats', label: 'Statystyki', icon: BarChart3 },
   { id: 'portfolio-holdings', label: 'Portfel', icon: Wallet },
   { id: 'portfolio-performance', label: 'Wyniki', icon: TrendingUp },
-  { id: 'portfolio-operations', label: 'Historia', icon: History },
+  { id: 'portfolio-operations', label: 'Operacje', icon: History },
 ] as const
 
 export type SectionId = (typeof sections)[number]['id']
