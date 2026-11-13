@@ -1,3 +1,4 @@
+import { MobileOperationCards } from '@/components/MobilePortfolioCards'
 import { CURRENCIES, OPERATION_LABELS } from '@/types/portfolio'
 import { ChevronLeft, ChevronRight, Trash2 } from 'lucide-react'
 import { useState } from 'react'
@@ -79,167 +80,176 @@ export const OperationsTable = () => {
             ))}
           </div>
         ) : (
-          <Table className="[&_td]:py-2">
-            <TableHeader>
-              <TableRow>
-                <TableColumn
-                  label="Operacja"
-                  sort="type"
-                  controls={controls}
-                  filters={[
-                    {
-                      key: 'operation_type',
-                      label: 'Operacja',
-                      options: Object.entries(OPERATION_LABELS).map(
-                        ([value, label]) => ({ value, label })
-                      ),
-                    },
-                  ]}
-                />
-                <TableColumn
-                  label="Typ aktywa"
-                  sort="kind"
-                  controls={controls}
-                  filters={[
-                    {
-                      key: 'kind',
-                      label: 'Typ aktywa',
-                      options: [
-                        ...ASSET_KINDS,
-                        { value: 'ETF', label: 'ETF' },
-                        { value: 'XTB', label: 'XTB' },
-                      ],
-                    },
-                  ]}
-                />
-                <TableColumn
-                  label="Nazwa"
-                  sort="name"
-                  controls={controls}
-                  filters={[{ key: 'name', label: 'Nazwa zawiera' }]}
-                />
-                <TableHead className="text-right">Wolumen</TableHead>
-                <TableHead className="text-right">Cena</TableHead>
-                <TableColumn
-                  label="Waluta"
-                  sort="currency"
-                  controls={controls}
-                  filters={[
-                    {
-                      key: 'currency',
-                      label: 'Waluta',
-                      options: CURRENCIES.map((value) => ({
-                        value,
-                        label: value,
-                      })),
-                    },
-                  ]}
-                />
-                <TableColumn
-                  label="Wartość (PLN)"
-                  sort="value_pln"
-                  right
-                  controls={controls}
-                />
-                <TableColumn
-                  label="Data"
-                  sort="date"
-                  controls={controls}
-                  filters={[
-                    { key: 'date_from', label: 'Od', type: 'date' },
-                    { key: 'date_to', label: 'Do', type: 'date' },
-                  ]}
-                />
-                <TableHead />
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {ops.length === 0 && (
+          <>
+            <MobileOperationCards
+              controls={controls}
+              operations={visibleOperations ?? []}
+              filtered={Boolean(controls.query)}
+              deleting={deleteOperation.isPending}
+              onDelete={(id) => deleteOperation.mutate(id)}
+            />
+            <Table containerClassName="hidden md:block" className="[&_td]:py-2">
+              <TableHeader>
                 <TableRow>
-                  <TableCell
-                    colSpan={9}
-                    className="py-10 text-center text-ink-3"
-                  >
-                    {controls.query
-                      ? 'Brak operacji spełniających filtry.'
-                      : 'Brak operacji. Dodaj pierwszą operację.'}
-                  </TableCell>
+                  <TableColumn
+                    label="Operacja"
+                    sort="type"
+                    controls={controls}
+                    filters={[
+                      {
+                        key: 'operation_type',
+                        label: 'Operacja',
+                        options: Object.entries(OPERATION_LABELS).map(
+                          ([value, label]) => ({ value, label })
+                        ),
+                      },
+                    ]}
+                  />
+                  <TableColumn
+                    label="Typ aktywa"
+                    sort="kind"
+                    controls={controls}
+                    filters={[
+                      {
+                        key: 'kind',
+                        label: 'Typ aktywa',
+                        options: [
+                          ...ASSET_KINDS,
+                          { value: 'ETF', label: 'ETF' },
+                          { value: 'XTB', label: 'XTB' },
+                        ],
+                      },
+                    ]}
+                  />
+                  <TableColumn
+                    label="Nazwa"
+                    sort="name"
+                    controls={controls}
+                    filters={[{ key: 'name', label: 'Nazwa zawiera' }]}
+                  />
+                  <TableHead className="text-right">Wolumen</TableHead>
+                  <TableHead className="text-right">Cena</TableHead>
+                  <TableColumn
+                    label="Waluta"
+                    sort="currency"
+                    controls={controls}
+                    filters={[
+                      {
+                        key: 'currency',
+                        label: 'Waluta',
+                        options: CURRENCIES.map((value) => ({
+                          value,
+                          label: value,
+                        })),
+                      },
+                    ]}
+                  />
+                  <TableColumn
+                    label="Wartość (PLN)"
+                    sort="value_pln"
+                    right
+                    controls={controls}
+                  />
+                  <TableColumn
+                    label="Data"
+                    sort="date"
+                    controls={controls}
+                    filters={[
+                      { key: 'date_from', label: 'Od', type: 'date' },
+                      { key: 'date_to', label: 'Do', type: 'date' },
+                    ]}
+                  />
+                  <TableHead />
                 </TableRow>
-              )}
-              {visibleOperations?.map((o) => (
-                <TableRow key={o.id} className="h-[48px]">
-                  <TableCell>
-                    <Badge
-                      variant={
-                        o.type === 'import'
-                          ? 'default'
-                          : o.type === 'buy' || o.type === 'deposit'
-                            ? 'buy'
-                            : 'sell'
-                      }
+              </TableHeader>
+              <TableBody>
+                {ops.length === 0 && (
+                  <TableRow>
+                    <TableCell
+                      colSpan={9}
+                      className="py-10 text-center text-ink-3"
                     >
-                      {o.sourceLabel ?? OPERATION_LABELS[o.type]}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>{o.kind}</TableCell>
-                  <TableCell className="font-medium">
-                    {o.name}
-                    {o.operationCount != null && (
-                      <span className="block text-xs font-normal text-ink-3">
-                        {o.operationCount} operacji źródłowych
-                      </span>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right font-mono tabular">
-                    {o.qty !== null && o.quantityUnit
-                      ? `${fmtNumber(o.qty)} ${o.quantityUnit}`
-                      : numberOrDash(o.qty)}
-                  </TableCell>
-                  <TableCell className="text-right font-mono tabular">
-                    {o.price !== null && o.quantityUnit
-                      ? `${fmtNumber(o.price)}/${o.quantityUnit}`
-                      : numberOrDash(o.price)}
-                  </TableCell>
-                  <TableCell>{o.currency}</TableCell>
-                  <TableCell className="text-right font-mono tabular font-medium">
-                    {numberOrDash(o.valuePln)}
-                  </TableCell>
-                  <TableCell className="font-mono text-xs text-ink-3">
-                    {format(parseISO(o.date), 'dd.MM.yyyy')}
-                  </TableCell>
-                  <TableCell>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      aria-label={
-                        o.type === 'import' ? 'Usuń cały import XTB' : 'Usuń'
-                      }
-                      title={
-                        o.type === 'import' ? 'Usuń cały import XTB' : 'Usuń'
-                      }
-                      disabled={deleteOperation.isPending}
-                      onClick={() => deleteOperation.mutate(o.id)}
-                    >
-                      <Trash2 size={13} />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {ops.length > pageSize &&
-                Array.from(
-                  { length: pageSize - (visibleOperations?.length ?? 0) },
-                  (_, index) => (
-                    <TableRow
-                      key={`empty-${index}`}
-                      aria-hidden="true"
-                      className="h-[48px] hover:bg-transparent"
-                    >
-                      <TableCell colSpan={9} className="p-0" />
-                    </TableRow>
-                  )
+                      {controls.query
+                        ? 'Brak operacji spełniających filtry.'
+                        : 'Brak operacji. Dodaj pierwszą operację.'}
+                    </TableCell>
+                  </TableRow>
                 )}
-            </TableBody>
-          </Table>
+                {visibleOperations?.map((o) => (
+                  <TableRow key={o.id} className="h-[48px]">
+                    <TableCell>
+                      <Badge
+                        variant={
+                          o.type === 'import'
+                            ? 'default'
+                            : o.type === 'buy' || o.type === 'deposit'
+                              ? 'buy'
+                              : 'sell'
+                        }
+                      >
+                        {o.sourceLabel ?? OPERATION_LABELS[o.type]}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>{o.kind}</TableCell>
+                    <TableCell className="font-medium">
+                      {o.name}
+                      {o.operationCount != null && (
+                        <span className="block text-xs font-normal text-ink-3">
+                          {o.operationCount} operacji źródłowych
+                        </span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right font-mono tabular">
+                      {o.qty !== null && o.quantityUnit
+                        ? `${fmtNumber(o.qty)} ${o.quantityUnit}`
+                        : numberOrDash(o.qty)}
+                    </TableCell>
+                    <TableCell className="text-right font-mono tabular">
+                      {o.price !== null && o.quantityUnit
+                        ? `${fmtNumber(o.price)}/${o.quantityUnit}`
+                        : numberOrDash(o.price)}
+                    </TableCell>
+                    <TableCell>{o.currency}</TableCell>
+                    <TableCell className="text-right font-mono tabular font-medium">
+                      {numberOrDash(o.valuePln)}
+                    </TableCell>
+                    <TableCell className="font-mono text-xs text-ink-3">
+                      {format(parseISO(o.date), 'dd.MM.yyyy')}
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        aria-label={
+                          o.type === 'import' ? 'Usuń cały import XTB' : 'Usuń'
+                        }
+                        title={
+                          o.type === 'import' ? 'Usuń cały import XTB' : 'Usuń'
+                        }
+                        disabled={deleteOperation.isPending}
+                        onClick={() => deleteOperation.mutate(o.id)}
+                      >
+                        <Trash2 size={13} />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {ops.length > pageSize &&
+                  Array.from(
+                    { length: pageSize - (visibleOperations?.length ?? 0) },
+                    (_, index) => (
+                      <TableRow
+                        key={`empty-${index}`}
+                        aria-hidden="true"
+                        className="h-[48px] hover:bg-transparent"
+                      >
+                        <TableCell colSpan={9} className="p-0" />
+                      </TableRow>
+                    )
+                  )}
+              </TableBody>
+            </Table>
+          </>
         )}
         {!isError && ops && ops.length > pageSize && (
           <nav

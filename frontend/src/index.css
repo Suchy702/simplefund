@@ -83,6 +83,38 @@
     @apply bg-background text-foreground font-sans antialiased;
     font-feature-settings: 'ss01', 'cv11';
   }
+
+  @media (max-width: 767.98px) {
+    input:not([type='checkbox']):not([type='radio']),
+    select,
+    textarea {
+      min-width: 0;
+      max-width: 100%;
+      min-height: 44px;
+      font-size: 16px;
+    }
+
+    button,
+    [role='menuitem'],
+    [role='option'] {
+      min-height: 44px;
+    }
+
+    button {
+      min-width: 44px;
+    }
+
+    [data-slot='calendar'] button {
+      min-width: 0;
+      min-height: 0;
+    }
+  }
+}
+
+@layer components {
+  .mobile-list-input {
+    @apply block w-full min-w-0 rounded-sm border border-border bg-card px-3 py-2 text-base text-foreground;
+  }
 }
 
 @keyframes skeleton-shimmer {
@@ -117,6 +149,16 @@
 }
 
 @layer utilities {
+  @media (max-width: 767.98px) {
+    .mobile-scrollbar-hidden {
+      scrollbar-width: none;
+    }
+
+    .mobile-scrollbar-hidden::-webkit-scrollbar {
+      display: none;
+    }
+  }
+
   .skeleton-shimmer {
     background-image: linear-gradient(
       100deg,

@@ -29,9 +29,14 @@ import {
 interface PageHeadProps {
   asOfDate: string
   syncedMinutesAgo: number | null
+  mobileActionsVisible?: boolean
 }
 
-export const PageHead = ({ asOfDate, syncedMinutesAgo }: PageHeadProps) => {
+export const PageHead = ({
+  asOfDate,
+  syncedMinutesAgo,
+  mobileActionsVisible = true,
+}: PageHeadProps) => {
   const [cashModalOpen, setCashModalOpen] = useState(false)
   const [depositModalOpen, setDepositModalOpen] = useState(false)
   const [stockModalOpen, setStockModalOpen] = useState(false)
@@ -42,7 +47,7 @@ export const PageHead = ({ asOfDate, syncedMinutesAgo }: PageHeadProps) => {
 
   return (
     <>
-      <div className="mb-6 flex items-end justify-between gap-4">
+      <div className="mb-6 flex flex-col items-stretch justify-between gap-4 md:flex-row md:items-end">
         <div>
           <h1 className="m-0 mb-1 text-2xl font-semibold tracking-tighter2 text-foreground">
             Twój portfel
@@ -53,7 +58,9 @@ export const PageHead = ({ asOfDate, syncedMinutesAgo }: PageHeadProps) => {
               ` · ostatnia synchronizacja ${syncedMinutesAgo} min temu`}
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div
+          className={`${mobileActionsVisible ? 'flex' : 'hidden md:flex'} flex-col gap-2 sm:flex-row sm:items-center`}
+        >
           <Button
             variant="outline"
             size="default"

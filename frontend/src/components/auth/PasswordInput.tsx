@@ -20,12 +20,12 @@ export const PasswordInput = ({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         required
-        className="h-12 rounded-md border-border bg-surface-elevated pr-10 text-sm hover:border-border-strong"
+        className="h-12 rounded-md border-border bg-surface-elevated pr-14 text-sm md:pr-10 hover:border-border-strong"
       />
       <button
         type="button"
         onClick={() => setShow((v) => !v)}
-        className="absolute right-3 top-1/2 -translate-y-1/2 text-brand"
+        className="absolute right-1 top-1/2 flex items-center justify-center md:right-3 -translate-y-1/2 text-brand"
         aria-label={show ? 'Ukryj hasło' : 'Pokaż hasło'}
       >
         {show ? <EyeOff size={18} /> : <Eye size={18} />}

@@ -29,14 +29,14 @@ export const Topbar = ({
   const initials = session?.user.email ? getInitials(session.user.email) : '?'
 
   return (
-    <header className="grid grid-cols-[1fr_auto_1fr] items-center gap-4 border-b border-border bg-card px-8 py-3.5 shrink-0">
+    <header className="flex shrink-0 items-center justify-between gap-2 border-b border-border bg-card px-4 py-3 md:flex-wrap md:px-6 xl:grid xl:grid-cols-[1fr_auto_1fr] xl:gap-4 xl:px-8 xl:py-3.5">
       <div className="flex items-center gap-2.5 text-lg font-semibold tracking-tight text-foreground">
         <span>
           SimpleFund<span className="text-brand">.</span>
         </span>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="hidden items-center gap-2 md:flex">
         <Button variant="outline" asChild>
           <a
             href="https://github.com/Suchy702/simplefund/tree/master"
@@ -73,6 +73,7 @@ export const Topbar = ({
       <div className="flex items-center justify-self-end gap-2">
         {isAdmin && (
           <Button
+            className="hidden md:inline-flex"
             variant={adminActive ? 'default' : 'outline'}
             onClick={onOpenAdmin}
             disabled={adminActive}
@@ -85,6 +86,7 @@ export const Topbar = ({
         <Button
           variant="outline"
           size="icon"
+          className="hidden md:inline-flex"
           aria-label="Powiadomienia"
           title="Powiadomienia"
         >
@@ -102,11 +104,37 @@ export const Topbar = ({
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Avatar className="cursor-pointer">
-              <AvatarFallback>{initials}</AvatarFallback>
-            </Avatar>
+            <Button variant="ghost" size="icon" aria-label="Menu konta">
+              <Avatar>
+                <AvatarFallback>{initials}</AvatarFallback>
+              </Avatar>
+            </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
+            <DropdownMenuItem className="md:hidden" asChild>
+              <a
+                href="https://github.com/Suchy702/simplefund/tree/master"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Github size={14} />
+                GitHub
+              </a>
+            </DropdownMenuItem>
+            <DropdownMenuItem className="md:hidden">
+              <Bell size={14} />
+              Powiadomienia
+            </DropdownMenuItem>
+            {isAdmin && (
+              <DropdownMenuItem
+                className="md:hidden"
+                onSelect={onOpenAdmin}
+                disabled={adminActive}
+              >
+                <Shield size={14} />
+                Panel admina
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem
               onClick={() => signOut.mutate()}
               disabled={signOut.isPending}

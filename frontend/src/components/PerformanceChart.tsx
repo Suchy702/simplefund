@@ -15,6 +15,7 @@ interface PerformanceChartProps {
   series: HistoryPoint[]
   showContribution: boolean
   height?: number
+  mobileLayout?: boolean
   hideValueLabelsOnMobile?: boolean
 }
 
@@ -23,6 +24,7 @@ export const PerformanceChart = ({
   showContribution,
   height = 300,
   hideValueLabelsOnMobile = false,
+  mobileLayout = false,
 }: PerformanceChartProps) => {
   const wrapRef = useRef<HTMLDivElement>(null)
   const areaGradientId = `portfolio-area-${useId().replace(/:/g, '')}`
@@ -30,18 +32,22 @@ export const PerformanceChart = ({
   const [hoverDate, setHoverDate] = useState<string | null>(null)
   const [isMobile, setIsMobile] = useState(
     () =>
-      hideValueLabelsOnMobile &&
-      window.matchMedia('(max-width: 639.98px)').matches
+      (mobileLayout || hideValueLabelsOnMobile) &&
+      window.matchMedia(
+        mobileLayout ? '(max-width: 767.98px)' : '(max-width: 639.98px)'
+      ).matches
   )
 
   useEffect(() => {
-    if (!hideValueLabelsOnMobile) return
-    const query = window.matchMedia('(max-width: 639.98px)')
+    if (!hideValueLabelsOnMobile && !mobileLayout) return
+    const query = window.matchMedia(
+      mobileLayout ? '(max-width: 767.98px)' : '(max-width: 639.98px)'
+    )
     const update = () => setIsMobile(query.matches)
     update()
     query.addEventListener('change', update)
     return () => query.removeEventListener('change', update)
-  }, [hideValueLabelsOnMobile])
+  }, [hideValueLabelsOnMobile, mobileLayout])
 
   const lines: {
     key: ValueKey
@@ -59,9 +65,12 @@ export const PerformanceChart = ({
         ]
       : []),
   ]
-  const right = hideValueLabelsOnMobile && isMobile ? LEFT : RIGHT
-  const innerW = Math.max(1, width - LEFT - right)
-  const innerH = height - TOP - BOTTOM
+  const compact = mobileLayout && isMobile
+  const chartHeight = compact ? 220 : height
+  const left = compact ? 44 : LEFT
+  const right = compact || (hideValueLabelsOnMobile && isMobile) ? LEFT : RIGHT
+  const innerW = Math.max(1, width - left - right)
+  const innerH = chartHeight - TOP - BOTTOM
   const computed = useMemo(() => {
     const keys: ValueKey[] = [
       'value',
@@ -87,7 +96,7 @@ export const PerformanceChart = ({
     minimum -= padding
     maximum += padding
     const xStep = innerW / Math.max(1, series.length - 1)
-    const x = (index: number) => LEFT + index * xStep
+    const x = (index: number) => left + index * xStep
     const y = (value: number) =>
       TOP + (innerH * (maximum - value)) / (maximum - minimum)
     const paths = Object.fromEntries(
@@ -135,7 +144,7 @@ export const PerformanceChart = ({
       (_, index) => minimum + ((maximum - minimum) * index) / 4
     )
     return { x, y, xStep, paths, areaPaths, ticks }
-  }, [series, showContribution, innerW, innerH])
+  }, [series, showContribution, innerW, innerH, left])
 
   const hoverIndex = hoverDate
     ? series.findIndex((point) => point.date === hoverDate)
@@ -145,7 +154,7 @@ export const PerformanceChart = ({
     return (
       <div
         ref={wrapRef}
-        style={{ height: Math.min(height, 96) }}
+        style={{ height: Math.min(chartHeight, 96) }}
         className="flex items-center justify-center text-ink-3"
       >
         Brak wyceny w tym okresie.
@@ -153,33 +162,42 @@ export const PerformanceChart = ({
     )
   }
   const labelCount = Math.min(
-    5,
+    compact ? 2 : 5,
     series.length,
     Math.max(2, Math.floor(innerW / 100))
   )
+  const selectPoint = (clientX: number, element: HTMLDivElement) => {
+    const position = clientX - element.getBoundingClientRect().left
+    const index = Math.max(
+      0,
+      Math.min(
+        series.length - 1,
+        Math.round((position - left) / computed.xStep)
+      )
+    )
+    setHoverDate(series[index].date)
+  }
   return (
     <div ref={wrapRef}>
       <div
         className="relative w-full"
-        style={{ height }}
-        onMouseMove={(event) => {
-          const position =
-            event.clientX - event.currentTarget.getBoundingClientRect().left
-          const index = Math.max(
-            0,
-            Math.min(
-              series.length - 1,
-              Math.round((position - LEFT) / computed.xStep)
-            )
-          )
-          setHoverDate(series[index].date)
+        style={{ height: chartHeight, touchAction: 'pan-y' }}
+        onPointerMove={(event) => {
+          if (event.pointerType !== 'touch')
+            selectPoint(event.clientX, event.currentTarget)
         }}
-        onMouseLeave={() => setHoverDate(null)}
+        onPointerDown={(event) =>
+          selectPoint(event.clientX, event.currentTarget)
+        }
+        onPointerLeave={(event) => {
+          if (event.pointerType !== 'touch') setHoverDate(null)
+        }}
+        onPointerCancel={() => setHoverDate(null)}
       >
         <svg
-          viewBox={`0 0 ${width} ${height}`}
+          viewBox={`0 0 ${width} ${chartHeight}`}
           className="block w-full"
-          style={{ height }}
+          style={{ height: chartHeight }}
           role="img"
           aria-label="Historia wartości portfela w PLN"
         >
@@ -199,8 +217,8 @@ export const PerformanceChart = ({
           {computed.ticks.map((tick, index) => (
             <g key={index}>
               <line
-                x1={LEFT}
-                x2={LEFT + innerW}
+                x1={left}
+                x2={left + innerW}
                 y1={computed.y(tick)}
                 y2={computed.y(tick)}
                 stroke="var(--border)"
@@ -210,13 +228,15 @@ export const PerformanceChart = ({
                 className={
                   hideValueLabelsOnMobile ? 'hidden sm:block' : undefined
                 }
-                x={width - 4}
+                x={compact ? left - 8 : width - 4}
                 y={computed.y(tick) + 4}
                 textAnchor="end"
                 fontSize="11"
                 fill="var(--ink-3)"
               >
-                {tick.toLocaleString('pl-PL', { maximumFractionDigits: 0 })}
+                {(compact ? tick / 1000 : tick).toLocaleString('pl-PL', {
+                  maximumFractionDigits: compact ? 1 : 0,
+                })}
               </text>
             </g>
           ))}
@@ -269,7 +289,7 @@ export const PerformanceChart = ({
               <text
                 key={index}
                 x={computed.x(pointIndex)}
-                y={height - 6}
+                y={chartHeight - 6}
                 textAnchor={
                   index === 0
                     ? 'start'
@@ -287,7 +307,7 @@ export const PerformanceChart = ({
         </svg>
         {hovered && (
           <div
-            className="pointer-events-none absolute top-0 z-10 max-w-[280px] rounded-sm border border-border bg-card px-3 py-2 text-xs shadow-md"
+            className="pointer-events-none absolute top-0 z-10 w-[260px] max-w-full break-words rounded-sm border border-border bg-card px-3 py-2 text-xs shadow-md"
             style={{
               left: Math.max(
                 0,
@@ -297,7 +317,10 @@ export const PerformanceChart = ({
           >
             <p className="mb-1 text-ink-3">{formatSeriesDate(hovered.date)}</p>
             {lines.map((line) => (
-              <p key={line.key} className="flex justify-between gap-3">
+              <p
+                key={line.key}
+                className="flex flex-wrap justify-between gap-x-3 gap-y-1"
+              >
                 <span>{line.label}</span>
                 <span className="font-mono tabular">
                   {hovered[line.key] === null

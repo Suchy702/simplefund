@@ -386,7 +386,7 @@ export const AddStockOperationModal = ({
                 {mutation.error.message}
               </p>
             )}
-            <div className="mt-2 flex justify-end gap-2">
+            <div className="mt-2 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
               <Button type="button" variant="outline" onClick={handleClose}>
                 Anuluj
               </Button>

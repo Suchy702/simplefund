@@ -251,7 +251,7 @@ export const AddMetalOperationModal = ({
               Podaj zawartość czystego metalu. Jedna uncja trojańska to
               31,1034768 g.
             </p>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <FloatInput
                 id="metal-price"
                 label="Cena transakcji za gram"
@@ -324,7 +324,7 @@ export const AddMetalOperationModal = ({
                 {mutation.error.message}
               </p>
             )}
-            <div className="mt-2 flex justify-end gap-2">
+            <div className="mt-2 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
               <Button type="button" variant="outline" onClick={handleClose}>
                 Anuluj
               </Button>

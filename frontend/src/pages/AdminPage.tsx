@@ -68,7 +68,7 @@ const ConnectionRow = ({
           : 'Nie sprawdzono'
 
   return (
-    <div className="rounded-sm border border-border bg-card p-4">
+    <div className="min-w-0 rounded-sm border border-border bg-card p-4 [overflow-wrap:anywhere]">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 className="font-medium">{name}</h3>
         <span
@@ -209,9 +209,9 @@ const AdminPage = ({ onBack }: { onBack: () => void }) => {
     sources.some(({ query }) => query.isFetching)
 
   return (
-    <div className="flex h-full flex-col overflow-hidden bg-background text-foreground">
+    <div className="flex h-dvh min-h-0 flex-col overflow-hidden bg-background text-foreground">
       <Topbar isAdmin adminActive />
-      <main className="flex-1 overflow-y-auto px-8 pb-12 pt-8">
+      <main className="min-h-0 flex-1 overflow-y-auto px-4 pb-12 pt-5 sm:px-6 sm:pt-6 lg:px-8 lg:pt-8">
         <div className="mx-auto w-full max-w-[1280px]">
           <Button variant="ghost" size="sm" className="mb-6" onClick={onBack}>
             <ArrowLeft size={14} />

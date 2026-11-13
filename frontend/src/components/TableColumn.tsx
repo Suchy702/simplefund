@@ -33,7 +33,7 @@ export const useTableControls = (onChange?: () => void) => {
   return { params, update, query: new URLSearchParams(params).toString() }
 }
 
-interface FilterField {
+export interface FilterField {
   key: string
   label: string
   type?: 'date'
@@ -42,6 +42,9 @@ interface FilterField {
 
 interface TableColumnProps {
   label: string
+  compact?: boolean
+  className?: string
+  colSpan?: number
   sort?: string
   right?: boolean
   filters?: FilterField[]
@@ -50,6 +53,9 @@ interface TableColumnProps {
 
 export const TableColumn = ({
   label,
+  compact = false,
+  className,
+  colSpan,
   sort,
   right,
   filters,
@@ -70,6 +76,13 @@ export const TableColumn = ({
 
   return (
     <TableHead
+      scope="col"
+      colSpan={colSpan}
+      className={cn(
+        compact &&
+          'h-auto whitespace-normal px-0 py-2 text-[10px] normal-case tracking-normal',
+        className
+      )}
       aria-sort={
         sorted
           ? params.direction === 'desc'
@@ -78,13 +91,21 @@ export const TableColumn = ({
           : undefined
       }
     >
-      <div className={cn('flex items-center gap-1', right && 'justify-end')}>
+      <div
+        className={cn(
+          'flex items-center gap-1',
+          compact && 'gap-0.5',
+          right && 'justify-end'
+        )}
+      >
         <span>{label}</span>
         {sort && (
           <button
             type="button"
             className={cn(
               'rounded-sm p-1 hover:text-foreground focus-visible:outline focus-visible:outline-2',
+              compact &&
+                'flex h-7 w-7 min-h-0 min-w-0 shrink-0 items-center justify-center p-0',
               sorted && 'text-brand'
             )}
             title={`Sortuj: ${label}`}
@@ -115,6 +136,8 @@ export const TableColumn = ({
                 aria-label={`Filtruj: ${label}`}
                 className={cn(
                   'rounded-sm p-1 hover:text-foreground focus-visible:outline focus-visible:outline-2',
+                  compact &&
+                    'flex h-7 w-7 min-h-0 min-w-0 shrink-0 items-center justify-center p-0',
                   filtered && 'text-brand'
                 )}
               >

@@ -71,7 +71,7 @@ const RegisterPage = ({ onGoToLogin }: RegisterPageProps) => {
             type="submit"
             variant="brand"
             size="lg"
-            className="w-full uppercase tracking-widest2"
+            className="w-full whitespace-normal uppercase tracking-wide sm:tracking-widest2"
             disabled={signUp.isPending}
           >
             {signUp.isPending ? 'Rejestracja…' : 'Zarejestruj się'}
@@ -89,7 +89,7 @@ const RegisterPage = ({ onGoToLogin }: RegisterPageProps) => {
         type="button"
         variant="outline"
         size="lg"
-        className="w-full border-brand text-brand uppercase tracking-widest2 hover:bg-brand-soft"
+        className="h-auto min-h-11 w-full border-brand py-2 text-brand whitespace-normal uppercase tracking-wide sm:tracking-widest2 hover:bg-brand-soft"
         onClick={() => signInWithGoogle.mutate()}
         disabled={signInWithGoogle.isPending}
       >

@@ -19,7 +19,7 @@ interface CellProps {
 
 const StatCell = ({ label, value, sub, toneClass }: CellProps) => (
   <div>
-    <div className="mb-2 text-tiny font-medium uppercase tracking-widest2 text-ink-3">
+    <div className="mb-1 text-tiny font-medium uppercase leading-snug tracking-wide text-ink-3">
       {label}
     </div>
     <div
@@ -40,13 +40,13 @@ export const PerformanceStats = ({ range }: PerformanceStatsProps) => {
 
   if (isLoading) {
     return (
-      <Card className="mb-4 px-8 py-6">
-        <div className="grid grid-cols-4 gap-8">
+      <Card className="mb-4 px-4 py-5 sm:px-6 lg:px-8 lg:py-6">
+        <div className="grid grid-cols-2 gap-6 xl:grid-cols-4 xl:gap-8 [&>div]:min-w-0 [&>div]:[overflow-wrap:anywhere]">
           {[0, 1, 2, 3].map((i) => (
             <div key={i}>
-              <Skeleton className="mb-2 h-3 w-24" />
-              <Skeleton className="h-7 w-32" />
-              <Skeleton className="mt-2 h-3 w-28" />
+              <Skeleton className="mb-1 h-3 w-24 max-w-full" />
+              <Skeleton className="h-7 w-32 max-w-full" />
+              <Skeleton className="mt-2 h-3 w-28 max-w-full" />
             </div>
           ))}
         </div>
@@ -56,7 +56,7 @@ export const PerformanceStats = ({ range }: PerformanceStatsProps) => {
 
   if (!stats) {
     return (
-      <Card className="mb-4 px-8 py-6 text-ink-3">
+      <Card className="mb-4 px-4 py-5 sm:px-6 lg:px-8 lg:py-6 text-ink-3">
         Brak danych do obliczenia statystyk.
       </Card>
     )
@@ -65,8 +65,8 @@ export const PerformanceStats = ({ range }: PerformanceStatsProps) => {
   const { peak, trough, peakDate, troughDate, stdPct, maxDd, maxDdPln } = stats
 
   return (
-    <Card className="mb-4 px-8 py-6">
-      <div className="grid grid-cols-4 gap-8">
+    <Card className="mb-4 px-4 py-5 sm:px-6 lg:px-8 lg:py-6">
+      <div className="grid grid-cols-2 gap-6 xl:grid-cols-4 xl:gap-8 [&>div]:min-w-0 [&>div]:[overflow-wrap:anywhere]">
         <StatCell
           label="Szczyt (ATH)"
           value={Math.round(peak).toLocaleString('pl-PL')}

@@ -1,4 +1,4 @@
-import { useEffect, useId, useState } from 'react'
+import { useEffect, useId, useState, type CSSProperties } from 'react'
 import { Info, Loader2, RefreshCw } from 'lucide-react'
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -17,6 +17,13 @@ import { fmtMoney, fmtPct } from '@/lib/formatters'
 import type { RangeKey } from '@/types/portfolio'
 
 const RANGES: RangeKey[] = ['1M', '3M', '6M', '1R', 'MAX']
+const RANGE_LABELS: Record<RangeKey, string> = {
+  '1M': '1 mies.',
+  '3M': '3 mies.',
+  '6M': '6 mies.',
+  '1R': '1 rok',
+  MAX: 'Całość',
+}
 
 interface PerformanceCardProps {
   range: RangeKey
@@ -70,90 +77,87 @@ export const PerformanceCard = ({
     return () => window.clearInterval(timer)
   }, [data?.nextCalculationAt, history.dataUpdatedAt])
 
+  const amount = headline
+    ? fmtMoney(headline.change, 'PLN', { sign: true })
+    : ''
+  const percentage =
+    headline?.changePct != null
+      ? `(${fmtPct(headline.changePct, { sign: true })})`
+      : null
+  const headlineWidth =
+    amount.length + (percentage ? percentage.length * 0.75 + 1 : 0)
+  const contributionToggle = (mobile: boolean) => (
+    <label
+      className={cn(
+        'relative inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-sm text-13 text-ink-2 hover:text-foreground',
+        !mobile && 'md:min-h-8 md:px-1.5 md:text-xs'
+      )}
+    >
+      <input
+        type="checkbox"
+        checked={showContribution}
+        onChange={(event) => setShowContribution(event.target.checked)}
+        className="peer sr-only"
+      />
+      <span
+        aria-hidden="true"
+        className="relative h-[18px] w-[34px] shrink-0 rounded-full border border-ink-3 bg-surface-subtle transition-colors peer-checked:border-blue-500 peer-checked:bg-blue-500 peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-card"
+      >
+        <span
+          className={cn(
+            'absolute left-[3px] top-[3px] h-2.5 w-2.5 rounded-full bg-ink-3 transition-transform',
+            showContribution && 'translate-x-4 bg-white'
+          )}
+        />
+      </span>
+      {mobile ? 'Pokaż wkład własny' : 'Wkład własny'}
+    </label>
+  )
+  const refreshButton = (mobile: boolean) => (
+    <span title={refreshLabel}>
+      <Button
+        type="button"
+        variant="ghost"
+        size={mobile || remaining > 0 ? 'sm' : 'icon'}
+        className={cn(
+          'gap-1.5',
+          mobile
+            ? 'min-h-11 px-1 text-xs text-inherit hover:bg-transparent hover:text-inherit'
+            : 'h-8',
+          data?.stale && !mobile && 'text-amber-600'
+        )}
+        disabled={refreshDisabled}
+        aria-label={refreshLabel}
+        onClick={() => refresh.mutate()}
+      >
+        {running ? (
+          <Loader2 size={15} className="animate-spin" />
+        ) : (
+          <RefreshCw size={15} />
+        )}
+        {mobile && (running ? 'Obliczanie…' : 'Odśwież dane')}
+        {!running && remaining > 0 && (
+          <span className="font-mono text-xs tabular">{countdown}</span>
+        )}
+      </Button>
+    </span>
+  )
+
   return (
-    <Card className="relative mb-4">
-      <CardHeader className="flex-col items-stretch gap-2 px-4 py-3 md:flex-row md:items-center md:gap-3">
-        <div className="flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1">
-          <CardTitle>Wyniki historyczne</CardTitle>
-          {headline && (
-            <span
-              className={cn(
-                'font-mono text-sm font-medium tabular',
-                headline.change >= 0 ? 'text-pos' : 'text-neg'
-              )}
-              title="Zmiana wartości w wybranym okresie, z uwzględnieniem wpłat i wypłat"
-            >
-              {fmtMoney(headline.change, 'PLN', { sign: true })}
-              {headline.changePct !== null && (
-                <span className="ml-1.5 text-xs">
-                  ({fmtPct(headline.changePct, { sign: true })})
-                </span>
-              )}
-            </span>
-          )}
-        </div>
-        <div className="flex shrink-0 flex-wrap items-center gap-1.5">
-          <Tabs
-            value={range}
-            onValueChange={(value) => onRangeChange(value as RangeKey)}
-          >
-            <TabsList className="h-8">
-              {RANGES.map((item) => (
-                <TabsTrigger
-                  key={item}
-                  value={item}
-                  className="px-2.5 py-1 text-xs"
-                >
-                  {item}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-          </Tabs>
-          <label className="relative inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-sm px-2 text-xs text-ink-2 hover:text-foreground">
-            <input
-              type="checkbox"
-              checked={showContribution}
-              onChange={(event) => setShowContribution(event.target.checked)}
-              className="peer sr-only"
-            />
-            <span
-              className="flex h-3.5 w-3.5 items-center justify-center rounded-full border border-ink-3 peer-checked:border-blue-500 peer-focus-visible:ring-2 peer-focus-visible:ring-blue-500 peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-card"
-              aria-hidden="true"
-            >
-              {showContribution && (
-                <span className="h-2 w-2 rounded-full bg-blue-500" />
-              )}
-            </span>
-            Wkład własny
-          </label>
-          {hasHistory && (
-            <span title={refreshLabel}>
-              <Button
-                type="button"
-                variant="ghost"
-                size={remaining > 0 && !running ? 'sm' : 'icon'}
-                className={cn('gap-1.5', data?.stale && 'text-amber-600')}
-                disabled={refreshDisabled}
-                aria-label={refreshLabel}
-                onClick={() => refresh.mutate()}
-              >
-                {running ? (
-                  <Loader2 size={14} className="animate-spin" />
-                ) : (
-                  <RefreshCw size={14} />
-                )}
-                {!running && remaining > 0 && (
-                  <span className="font-mono text-xs tabular">{countdown}</span>
-                )}
-              </Button>
-            </span>
-          )}
+    <Card className="relative mb-4 rounded-[22px] md:rounded-lg">
+      <CardHeader className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 gap-y-4 border-b-0 p-4 pb-0 md:flex md:flex-wrap md:gap-3 md:border-b md:pb-4">
+        <CardTitle className="text-[17px] md:text-sm">
+          <span className="md:hidden">Wyniki portfela</span>
+          <span className="hidden md:inline">Wyniki historyczne</span>
+        </CardTitle>
+        <div className="justify-self-end md:order-last">
           <Popover open={infoOpen} onOpenChange={setInfoOpen}>
             <PopoverTrigger asChild>
               <Button
                 type="button"
                 variant="ghost"
                 size="icon"
+                className="h-11 w-11 md:h-8 md:w-8"
                 aria-label="Szczegóły wykresu"
                 title="Szczegóły wykresu"
               >
@@ -202,30 +206,90 @@ export const PerformanceCard = ({
             </PopoverContent>
           </Popover>
         </div>
+        {headline && (
+          <>
+            <div className="col-span-2 min-w-0 [container-type:inline-size] md:hidden">
+              <p
+                className="whitespace-nowrap font-mono text-[length:var(--headline-font)] font-semibold leading-tight tracking-tight tabular"
+                style={
+                  {
+                    '--headline-font': `clamp(0.625rem, ${100 / Math.max(1, headlineWidth * 0.64)}cqw, 2.2rem)`,
+                  } as CSSProperties
+                }
+                title="Zmiana wartości w wybranym okresie, z uwzględnieniem wpłat i wypłat"
+              >
+                {amount}
+                {percentage && (
+                  <span
+                    className={cn(
+                      'ml-1.5 text-[0.75em]',
+                      headline.changePct! >= 0 ? 'text-pos' : 'text-neg'
+                    )}
+                  >
+                    {percentage}
+                  </span>
+                )}
+              </p>
+            </div>
+            <span
+              className={cn(
+                'hidden font-mono text-sm font-medium tabular md:inline',
+                headline.change >= 0 ? 'text-pos' : 'text-neg'
+              )}
+              title="Zmiana wartości w wybranym okresie, z uwzględnieniem wpłat i wypłat"
+            >
+              {amount}
+              {headline.changePct !== null && (
+                <span className="ml-1.5 text-xs">
+                  ({fmtPct(headline.changePct, { sign: true })})
+                </span>
+              )}
+            </span>
+          </>
+        )}
+        <Tabs
+          className="col-span-2 w-full md:ml-auto md:w-auto"
+          value={range}
+          onValueChange={(value) => onRangeChange(value as RangeKey)}
+        >
+          <TabsList className="grid w-full grid-cols-5 gap-0.5 rounded-xl p-1 md:inline-flex md:w-auto md:rounded-sm md:p-0.5">
+            {RANGES.map((item) => (
+              <TabsTrigger
+                key={item}
+                value={item}
+                className="min-h-11 rounded-lg px-1 py-2 text-xs data-[state=active]:bg-foreground data-[state=active]:text-card md:min-h-0 md:rounded-[4px] md:px-2.5 md:py-1 md:data-[state=active]:bg-card md:data-[state=active]:text-foreground"
+              >
+                <span className="md:hidden">{RANGE_LABELS[item]}</span>
+                <span className="hidden md:inline">{item}</span>
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
+        <div className="hidden items-center gap-1 md:flex">
+          {contributionToggle(false)}
+          {hasHistory && refreshButton(false)}
+        </div>
       </CardHeader>
-      <CardContent className="px-4 pb-3 pt-2">
+      <CardContent className="px-4 pb-4 pt-3 md:pb-3 md:pt-2">
+        {hasHistory && (
+          <p className="mb-1 text-13 font-medium md:hidden">
+            Wartość portfela{' '}
+            <span className="font-normal text-ink-3">· tys. PLN</span>
+          </p>
+        )}
         <div
           className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs"
           aria-live="polite"
         >
           {hasHistory && (
             <>
-              <span className="inline-flex items-center gap-1.5 text-ink-3">
+              <span className="hidden items-center gap-1.5 text-ink-3 md:inline-flex">
                 <span
                   className="w-4 border-t-2 border-pos"
                   aria-hidden="true"
                 />
                 Portfel
               </span>
-              {showContribution && (
-                <span className="inline-flex items-center gap-1.5 text-ink-3">
-                  <span
-                    className="w-4 border-t-2 border-blue-500"
-                    aria-hidden="true"
-                  />
-                  Wkład własny
-                </span>
-              )}
             </>
           )}
           {error && (
@@ -242,7 +306,7 @@ export const PerformanceCard = ({
             <button
               type="button"
               onClick={() => setInfoOpen(true)}
-              className="rounded-sm py-1 text-amber-600 hover:underline"
+              className="hidden rounded-sm py-1 text-amber-600 hover:underline md:inline"
             >
               Nieaktualne
             </button>
@@ -258,6 +322,7 @@ export const PerformanceCard = ({
             series={data?.series ?? []}
             showContribution={showContribution}
             height={300}
+            mobileLayout
           />
         ) : (
           <div className="flex min-h-24 flex-col items-center justify-center gap-2 py-5">
@@ -285,6 +350,32 @@ export const PerformanceCard = ({
                 </Button>
               </span>
             )}
+          </div>
+        )}
+        {hasHistory && (
+          <div className="mt-1 md:hidden">
+            {contributionToggle(true)}
+            <div
+              className={cn(
+                'mt-1 flex flex-wrap items-center justify-between gap-x-2 rounded-lg px-3 text-xs',
+                error
+                  ? 'bg-[var(--neg-soft)] text-neg'
+                  : data?.stale
+                    ? 'bg-brand-soft text-brand-ink'
+                    : 'bg-surface-subtle text-ink-2'
+              )}
+            >
+              <span role="status">
+                {running
+                  ? 'Trwa przeliczanie'
+                  : error
+                    ? 'Błąd aktualizacji danych'
+                    : data?.stale
+                      ? 'Dane mogą być nieaktualne'
+                      : 'Dane aktualne'}
+              </span>
+              {refreshButton(true)}
+            </div>
           </div>
         )}
       </CardContent>
